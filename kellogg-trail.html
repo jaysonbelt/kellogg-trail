@@ -6,7 +6,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden}
-canvas{display:block}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 </style>
 </head>
 <body>
@@ -21,9 +21,10 @@ cv.width=W*DPR;cv.height=H*DPR;
 cx.scale(DPR,DPR);
 
 function resize(){
-  const s=Math.min(window.innerWidth/W,window.innerHeight/H,2.2);
-  cv.style.width=Math.floor(W*s)+'px';
-  cv.style.height=Math.floor(H*s)+'px';
+  const max=Math.min(window.innerWidth/W,window.innerHeight/H);
+  const s=Math.max(1,Math.floor(max));
+  cv.style.width=(W*s)+'px';
+  cv.style.height=(H*s)+'px';
 }
 resize();
 window.addEventListener('resize',resize);
