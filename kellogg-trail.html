@@ -1295,7 +1295,7 @@ function drawHUD(G){
   T(String(G.enemas),415,5,C.CY,7);
   T('KELLOGG:',445,5,C.DK,7);
   T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),502,5,C.YL,7);
-  TR('DAY '+G.day,W-6,5,C.WH,7);
+  TR('DAY '+G.day+'  ['+Math.min(sceneIdx+1,gameEvents.length||11)+'/11]',W-6,5,C.WH,7);
 }
 
 // ═══════════════════════════════════════════════
@@ -1508,7 +1508,7 @@ function handleClick(){
 // GAME LOGIC
 // ═══════════════════════════════════════════════
 let state='title';
-let G={sanity:100,bowel:3,approval:5,enemas:0,day:1};
+let G={sanity:75,bowel:3,approval:5,enemas:0,day:1};
 let sceneIdx=0;
 let currentEvent=null;
 let gameEvents=[];
