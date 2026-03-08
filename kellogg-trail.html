@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Kellogg Trail</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+'use strict';
+const cv=document.getElementById('c');
+const cx=cv.getContext('2d');
+const W=640,H=400;
+cv.width=W;cv.height=H;
+
+function resize(){
+  const s=Math.min(window.innerWidth/W,window.innerHeight/H,2.2);
+  cv.style.width=Math.floor(W*s)+'px';
+  cv.style.height=Math.floor(H*s)+'px';
+}
+resize();
+window.addEventListener('resize',resize);
+
+// ═══════════════════════════════════════════════
+// DRAWING PRIMITIVES
+// ═══════════════════════════════════════════════
+function box(x,y,w,h,col){cx.fillStyle=col;cx.fillRect(~~x,~~y,~~w,~~h);}
+function hln(y,col){cx.fillStyle=col;cx.fillRect(0,~~y,W,1);}
+function vln(x,y1,y2,col){cx.fillStyle=col;cx.fillRect(~~x,~~y1,1,~~y2-~~y1);}
+
+// DOS-style bordered box
+function dbox(x,y,w,h,bg,border){
+  box(x,y,w,h,bg);
+  cx.strokeStyle=border;cx.lineWidth=1;cx.strokeRect(x+0.5,y+0.5,w-1,h-1);
+  cx.strokeStyle=darken(border,60);cx.strokeRect(x+2.5,y+2.5,w-5,h-5);
+}
+
+function darken(hex,amt){
+  let n=parseInt(hex.replace('#',''),16);
+  const r=Math.max(0,(n>>16&255)-amt),g=Math.max(0,(n>>8&255)-amt),b=Math.max(0,(n&255)-amt);
+  return '#'+(r<16?'0':'')+r.toString(16)+(g<16?'0':'')+g.toString(16)+(b<16?'0':'')+b.toString(16);
+}
+
+// Pixel text
+function T(str,x,y,col,sz=8){
+  cx.font=sz+'px "Courier New",monospace';
+  cx.fillStyle=col;cx.textBaseline='top';cx.textAlign='left';
+  cx.fillText(str,~~x,~~y);
+}
+function TC(str,y,col,sz=8){
+  cx.font=sz+'px "Courier New",monospace';
+  cx.fillStyle=col;cx.textBaseline='top';cx.textAlign='center';
+  cx.fillText(str,W/2,~~y);
+}
+function TR(str,x,y,col,sz=8){
+  cx.font=sz+'px "Courier New",monospace';
+  cx.fillStyle=col;cx.textBaseline='top';cx.textAlign='right';
+  cx.fillText(str,~~x,~~y);
+}
+function TW(str,sz=8){
+  cx.font=sz+'px "Courier New",monospace';
+  return cx.measureText(str).width;
+}
+function wrap(str,maxW,sz=8){
+  const words=str.split(' '),lines=[];
+  let cur='';
+  for(const w of words){
+    const t=cur?cur+' '+w:w;
+    if(TW(t,sz)>maxW&&cur){lines.push(cur);cur=w;}else cur=t;
+  }
+  if(cur)lines.push(cur);
+  return lines;
+}
+
+// CGA palette
+const C={
+  BK:'#000000',WH:'#ffffff',CY:'#55ffff',GR:'#55ff55',YL:'#ffff55',
+  RD:'#ff5555',MG:'#ff55ff',BL:'#5555ff',
+  DK:'#555555',LG:'#aaaaaa',
+  DBLU:'#0000aa',DGRE:'#005500',DCYA:'#005555',
+  DRED:'#aa0000',DYEL:'#aa5500',DMAG:'#aa00aa',
+  SKY:'#0000aa',GND:'#005500',DIRT:'#aa5500',
+  SKIN:'#ffaa55',WSKIN:'#ffcc88',
+  BRICK:'#aa3300',STONE:'#888888',
+};
+
+// ═══════════════════════════════════════════════
+// PIXEL-ART CHARACTERS (2×2 pixel grid)
+// ═══════════════════════════════════════════════
+// Each character drawn in a local coordinate system
+// ox,oy = origin (feet level), s = pixel size (default 2)
+
+function drawChar(ox,oy,pixels){
+  // pixels = array of [px,py,color] where px,py in pixel units
+  const s=2;
+  for(const [px,py,col] of pixels){
+    box(ox+px*s,oy+py*s,s,s,col);
+  }
+}
+
+// ─── PATIENT (the player character) ───────────────────────────
+// Victorian gentleman / patient in sanitarium gown
+function drawPatient(ox,oy,frame,facing='right'){
+  const f=Math.floor(frame)%4;
+  const bob=(f===1||f===3)?-1:0;
+  const ll=f<2?1:-1,rl=-ll;
+  const s=2;
+  const fl=facing==='left'?-1:1;
+  function p(px,py,col){box(ox+px*s*fl+(facing==='left'?s:0),oy+(py+bob)*s,s,s,col);}
+  // shadow
+  cx.fillStyle='rgba(0,0,0,0.35)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  // legs (gown — white)
+  p(-1,8+ll,C.WH);p(1,8+rl,C.WH);
+  p(-1,9+ll,'#cccccc');p(1,9+rl,'#cccccc');
+  // gown body
+  for(let bx=-2;bx<=2;bx++)for(let by=3;by<=7;by++)p(bx,by,C.WH);
+  p(0,4,'#dddddd');p(0,5,'#dddddd'); // gown center line
+  // arms
+  p(-3,4+(f<2?-1:1),C.WH);p(3,4+(f<2?1:-1),C.WH);
+  p(-3,5+(f<2?-1:1),C.WSKIN);p(3,5+(f<2?1:-1),C.WSKIN); // hands
+  // neck
+  p(0,2,C.WSKIN);
+  // head
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  p(-1,1,C.WSKIN);p(0,1,C.WSKIN);p(1,1,C.WSKIN);
+  p(-1,1,'#331100');p(1,1,'#331100'); // eyes
+  // hair
+  p(-1,-1,'#331100');p(0,-1,'#331100');p(1,-1,'#331100');
+  p(2,-1,'#331100');
+  // mustache
+  p(-1,2,'#331100');p(0,2,'#331100');
+}
+
+// ─── DR. JOHN HARVEY KELLOGG ──────────────────────────────────
+// All white coat + hat, beard, pointing finger, intense
+function drawKellogg(ox,oy,frame){
+  const bob=Math.floor(frame*0.4)%2?-1:0;
+  const s=2;
+  function p(px,py,col){box(ox+px*s,oy+(py+bob)*s,s,s,col);}
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  // white coat legs
+  p(-1,8,'#eeeecc');p(1,8,'#eeeecc');p(-1,9,'#ddddbb');p(1,9,'#ddddbb');
+  // white coat body
+  for(let bx=-2;bx<=2;bx++)for(let by=2;by<=7;by++)p(bx,by,'#ffffe8');
+  p(0,3,'#ccccaa');p(0,4,'#ccccaa');p(0,5,'#ccccaa'); // coat center
+  // pointing right arm
+  p(3,3,'#ffffe8');p(4,3,'#ffffe8');p(5,3,C.WSKIN);p(6,3,C.WSKIN); // point!
+  p(-3,4,'#ffffe8'); // other arm
+  // neck
+  p(0,1,C.WSKIN);p(0,2,C.WSKIN);
+  // head
+  p(-1,-1,C.WSKIN);p(0,-1,C.WSKIN);p(1,-1,C.WSKIN);
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  // intense eyes
+  p(-1,0,'#330000');p(1,0,'#330000');
+  p(-2,-1,'#221100');p(2,-1,'#221100'); // eyebrows furrowed
+  // thick beard / mustache
+  p(-1,1,'#ddddaa');p(0,1,'#ddddaa');p(1,1,'#ddddaa');
+  p(-1,2,'#ccccaa');p(0,2,'#ccccaa');p(1,2,'#ccccaa');
+  p(0,3,'#bbbbaa');
+  // white top hat (tall)
+  for(let hx=-2;hx<=2;hx++)p(hx,-2,'#ffffe8');
+  for(let hx=-1;hx<=1;hx++){p(hx,-3,'#ffffd0');p(hx,-4,'#ffffd0');p(hx,-5,'#ffffd0');p(hx,-6,'#ffffd0');}
+  // hat band
+  for(let hx=-1;hx<=1;hx++)p(hx,-3,'#ccccaa');
+}
+
+// ─── WILL KELLOGG ─────────────────────────────────────────────
+// Dark coat, exhausted, holds clipboard, stooped
+function drawWill(ox,oy,frame){
+  const bob=Math.floor(frame*0.25)%2?-1:0;
+  const s=2;
+  function p(px,py,col){box(ox+px*s,oy+(py+bob)*s,s,s,col);}
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  p(-1,8,'#1a2a3a');p(1,8,'#1a2a3a');p(-1,9,'#0a1a2a');p(1,9,'#0a1a2a');
+  for(let bx=-2;bx<=2;bx++)for(let by=2;by<=7;by++)p(bx,by,'#1a2a3a');
+  // clipboard in right hand
+  p(3,4,'#ccbb55');p(4,4,'#ccbb55');p(3,5,'#ccbb55');p(4,5,'#ccbb55');p(3,3,'#887730'); // clip
+  p(-3,5,'#1a2a3a');
+  // head — stooped slightly
+  p(0,1,C.WSKIN);
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  p(-1,-1,C.WSKIN);p(0,-1,C.WSKIN);p(1,-1,C.WSKIN);
+  // tired half-closed eyes
+  p(-1,-1,'#222222');p(1,-1,'#555555');
+  // bags under eyes
+  p(-1,0,'#cc9966');p(1,0,'#cc9966');
+  // dark hair, messy
+  p(-1,-2,'#221108');p(0,-2,'#221108');p(1,-2,'#221108');p(2,-2,'#221108');p(-2,-1,'#221108');
+  // dark plain hat
+  for(let hx=-2;hx<=2;hx++)p(hx,-3,'#111008');
+  for(let hx=-1;hx<=1;hx++){p(hx,-4,'#111008');p(hx,-5,'#111008');}
+}
+
+// ─── CW POST ──────────────────────────────────────────────────
+// Fancy dark suit, scheming expression, gold watch chain
+function drawPost(ox,oy,frame){
+  const f=Math.floor(frame)%4;
+  const bob=(f===1||f===3)?-1:0;
+  const s=2;
+  function p(px,py,col){box(ox+px*s,oy+(py+bob)*s,s,s,col);}
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  p(-1,8,'#2a1008');p(1,8,'#2a1008');p(-1,9,'#1a0a05');p(1,9,'#1a0a05');
+  for(let bx=-2;bx<=2;bx++)for(let by=2;by<=7;by++)p(bx,by,'#2a1510');
+  // waistcoat
+  p(0,3,'#885522');p(0,4,'#885522');p(0,5,'#885522');
+  // gold watch chain
+  p(-1,5,'#ccaa33');p(-2,4,'#ccaa33');
+  // coin/bag
+  p(3,5,'#ccaa33');p(4,5,'#ccaa33');p(3,4,'#ccaa33');
+  p(-3,4,'#2a1510');
+  p(0,1,C.WSKIN);
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  p(-1,-1,C.WSKIN);p(0,-1,C.WSKIN);p(1,-1,C.WSKIN);
+  // scheming narrow eyes
+  p(-1,-1,'#330800');p(1,-1,'#330800');
+  p(-1,0,'#552200');p(1,0,'#552200'); // raised eyebrows (scheming)
+  // thin mustache
+  p(-1,1,'#331100');p(0,1,'#331100');p(1,1,'#331100');
+  // tall dark top hat
+  for(let hx=-2;hx<=2;hx++)p(hx,-2,'#0a0500');
+  for(let hx=-1;hx<=1;hx++){p(hx,-3,'#0a0500');p(hx,-4,'#0a0500');p(hx,-5,'#0a0500');p(hx,-6,'#0a0500');}
+  p(-2,-2,'#0a0500');p(2,-2,'#0a0500');
+}
+
+// ─── NURSE ────────────────────────────────────────────────────
+// White uniform, cap, carrying tray/pot, cheerful (disturbingly so)
+function drawNurse(ox,oy,frame,carrying='tray'){
+  const f=Math.floor(frame)%4;
+  const bob=(f===1||f===3)?-1:0;
+  const s=2;
+  function p(px,py,col){box(ox+px*s,oy+(py+bob)*s,s,s,col);}
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  // white uniform legs
+  p(-1,8,'#eeeedd');p(1,8,'#eeeedd');p(-1,9,'#ddddcc');p(1,9,'#ddddcc');
+  // white uniform body
+  for(let bx=-2;bx<=2;bx++)for(let by=2;by<=7;by++)p(bx,by,'#fffef0');
+  // red cross on chest
+  p(0,3,C.RD);p(0,4,C.RD);p(-1,4,C.RD);p(1,4,C.RD);
+  // what she's carrying
+  if(carrying==='tray'){
+    // tray held out
+    p(3,4,'#aaaa88');p(4,4,'#aaaa88');p(5,4,'#aaaa88');p(3,5,'#888866');
+    // bowl on tray
+    p(4,3,'#cc9944');p(5,3,'#cc9944');
+  } else if(carrying==='pot'){
+    // yogurt pot — brown, round
+    p(3,4,C.DYEL);p(4,4,C.DYEL);p(5,4,C.DYEL);
+    p(3,5,C.DYEL);p(4,5,C.DYEL);p(5,5,C.DYEL);
+    p(3,3,C.DYEL);p(4,3,'#885522'); // handle/top
+    // YOGURT label suggestion
+    p(4,4,'#ffe8c0');p(5,4,'#ffe8c0');
+  } else if(carrying==='enema'){
+    // rubber bag + tube (the dreaded item)
+    p(3,3,C.RD);p(4,3,C.RD);p(3,4,C.RD);p(4,4,C.RD); // bag
+    p(5,5,'#cc4422');p(6,6,'#cc4422'); // tube
+  }
+  p(-3,5,'#fffef0'); // other arm
+  p(0,1,C.WSKIN);
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  p(-1,-1,C.WSKIN);p(0,-1,C.WSKIN);p(1,-1,C.WSKIN);
+  // BIG smile (disturbingly cheerful)
+  p(-1,0,C.DRED);p(1,0,C.DRED); // eyes — kind
+  p(-1,1,'#cc4444');p(0,1,'#cc4444');p(1,1,'#cc4444'); // wide smile
+  // Nurse cap
+  box(ox-2*s,oy-3*s,10*s,s*2,'#fffef0');
+  box(ox-s,oy-4*s,8*s,s,'#fffef0');
+  // Red cross on cap
+  box(ox+2*s,oy-4*s,2*s,s*3,'#dd2222');
+  box(ox+s,oy-3*s,4*s,s,'#dd2222');
+}
+
+// ─── DOCTOR (generic sanitarium doctor) ────────────────────────
+// Dark suit, stethoscope, concerned expression
+function drawDoctor(ox,oy,frame){
+  const bob=Math.floor(frame*0.35)%2?-1:0;
+  const s=2;
+  function p(px,py,col){box(ox+px*s,oy+(py+bob)*s,s,s,col);}
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  p(-1,8,'#1a1a2a');p(1,8,'#1a1a2a');p(-1,9,'#0a0a1a');p(1,9,'#0a0a1a');
+  for(let bx=-2;bx<=2;bx++)for(let by=2;by<=7;by++)p(bx,by,'#1a1a2a');
+  // white shirt / cravat
+  p(0,2,C.WH);p(0,3,C.WH);
+  // stethoscope around neck
+  p(-2,3,'#887755');p(-2,4,'#887755');p(-1,5,'#887755');p(0,5,'#887755');p(1,5,'#887755');
+  p(2,4,'#887755');p(2,3,'#887755');p(3,3,'#aaaaaa');
+  p(-3,5,'#1a1a2a');p(3,5,'#1a1a2a');
+  p(0,1,C.WSKIN);
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  p(-1,-1,C.WSKIN);p(0,-1,C.WSKIN);p(1,-1,C.WSKIN);
+  p(-1,-1,'#1a1a3a');p(1,-1,'#1a1a3a'); // concerned eyes
+  p(-1,0,'#994422'); // worried mouth
+  // spectacles
+  cx.strokeStyle='#ccaa33';cx.lineWidth=1;
+  cx.strokeRect(ox-4,oy-2,5,4);cx.strokeRect(ox+2,oy-2,5,4);
+  cx.beginPath();cx.moveTo(ox,oy-1);cx.lineTo(ox+2,oy-1);cx.stroke();
+  // neat hair
+  for(let hx=-1;hx<=2;hx++)p(hx,-2,'#221108');
+  p(-2,-1,'#221108');
+  // bowler hat
+  for(let hx=-2;hx<=2;hx++)p(hx,-3,'#1a1a28');
+  for(let hx=-1;hx<=1;hx++){p(hx,-4,'#1a1a28');p(hx,-5,'#1a1a28');}
+}
+
+// ─── HENRY FORD (cameo patient) ───────────────────────────────
+// Famous thin face, dark suit, he's watching judgmentally
+function drawFord(ox,oy,frame){
+  const bob=Math.floor(frame*0.2)%2?-1:0;
+  const s=2;
+  function p(px,py,col){box(ox+px*s,oy+(py+bob)*s,s,s,col);}
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(ox+4,oy+20,10,3,0,0,Math.PI*2);cx.fill();
+  p(-1,8,'#111118');p(1,8,'#111118');p(-1,9,'#0a0a10');p(1,9,'#0a0a10');
+  for(let bx=-2;bx<=2;bx++)for(let by=2;by<=7;by++)p(bx,by,'#111118');
+  p(0,2,'#eeeedd');p(0,3,'#eeeedd'); // shirt
+  // arms crossed (disapproving)
+  p(-3,4,'#111118');p(-4,4,'#111118');p(3,4,'#111118');p(4,4,'#111118');
+  p(-3,5,'#111118');p(3,5,'#111118');
+  p(0,1,C.WSKIN);
+  // thin face
+  p(-1,0,C.WSKIN);p(0,0,C.WSKIN);p(1,0,C.WSKIN);
+  p(-1,-1,C.WSKIN);p(0,-1,C.WSKIN);p(1,-1,C.WSKIN);
+  p(0,-2,C.WSKIN);p(-1,-2,C.WSKIN); // longer thin face
+  // judgy eyes, thin line mouth
+  p(-1,-1,'#220000');p(1,-1,'#220000');
+  p(-1,0,'#993322');p(1,0,'#993322'); // stern eyebrows
+  p(0,1,'#aa4422'); // thin line mouth (disapproving)
+  // slicked back hair
+  for(let hx=-1;hx<=2;hx++)p(hx,-3,'#1a1008');
+  p(-2,-2,'#1a1008');p(-1,-2,'#1a1008');p(-2,-1,'#1a1008');
+  // dark derby
+  for(let hx=-2;hx<=2;hx++)p(hx,-4,'#111008');
+  for(let hx=-1;hx<=1;hx++){p(hx,-5,'#111008');p(hx,-6,'#111008');}
+}
+
+// ═══════════════════════════════════════════════
+// SANITARIUM WORLD RENDERER
+// ═══════════════════════════════════════════════
+// Oregon Trail style: top half = scrolling scene, bottom half = text
+
+const GY=210; // ground Y (where bottom of scene is)
+
+// Scenery objects for each scene type
+function drawScene(sceneType,scrollX,walkF){
+  switch(sceneType){
+    case 'approach':    drawApproach(scrollX,walkF); break;
+    case 'lobby':       drawLobby(scrollX,walkF); break;
+    case 'lecture':     drawLectureHall(scrollX,walkF); break;
+    case 'hydrotherapy':drawHydroWing(scrollX,walkF); break;
+    case 'kitchen_day': drawKitchenDay(scrollX,walkF); break;
+    case 'sunroom':     drawSunroom(scrollX,walkF); break;
+    case 'kitchen_night':drawKitchenNight(scrollX,walkF); break;
+    case 'office':      drawOffice(scrollX,walkF); break;
+    case 'victory':     drawVictoryScene(scrollX,walkF); break;
+    default:            drawApproach(scrollX,walkF);
+  }
+}
+
+// ─── SHARED HELPERS ───────────────────────────────────────────
+function drawSkyGround(skyCol,gndCol,horizonCol){
+  box(0,0,W,GY,skyCol);
+  hln(GY-1,horizonCol);
+  hln(GY,horizonCol);
+  box(0,GY,W,H-GY,gndCol);
+}
+
+function drawRoad(scrollX,pathCol,dashCol){
+  box(0,GY+5,W,25,pathCol);
+  hln(GY+5,darken(pathCol,-30));
+  hln(GY+28,darken(pathCol,-30));
+  // dashes
+  for(let x=(-scrollX*0.7)%36-36;x<W+36;x+=36){
+    box(~~x,GY+15,18,3,dashCol);
+  }
+}
+
+function scrollTree(scrollX,baseX,i,height,gndCol){
+  const speed=0.7+i%3*0.1;
+  const x=((baseX-scrollX*speed)%1200+1200)%1200-60;
+  if(x<-60||x>W+10) return;
+  box(x+8,GY-height,6,height,'#5a3010');
+  box(x,GY-height-10,22,height*0.6+10,gndCol==='#002200'?'#003300':'#005500');
+  box(x+3,GY-height-20,16,(height*0.4)+12,gndCol==='#002200'?'#004400':'#007700');
+  box(x+6,GY-height-28,10,12,C.GR);
+}
+
+// ─── SCENE: EXTERIOR APPROACH TO SANITARIUM ──────────────────
+function drawApproach(scrollX,walkF){
+  drawSkyGround(C.SKY,'#003300','#002200');
+  // Sun or moon
+  box(500,30,28,28,C.YL);box(504,34,20,20,'#ffee00');box(508,38,12,12,'#ffdd00');
+
+  // Far background — sanitarium building (slow parallax)
+  const bx=~~(400-scrollX*0.08);
+  if(bx>-200&&bx<W+20){
+    // Main building — large Victorian structure
+    box(bx,GY-120,280,120,C.STONE);
+    box(bx,GY-122,280,5,'#aaaaaa');
+    // Roof gables
+    cx.fillStyle='#774422';
+    cx.beginPath();cx.moveTo(bx-10,GY-120);cx.lineTo(bx+140,GY-165);cx.lineTo(bx+290,GY-120);cx.closePath();cx.fill();
+    cx.beginPath();cx.moveTo(bx+80,GY-120);cx.lineTo(bx+180,GY-145);cx.lineTo(bx+280,GY-120);cx.closePath();cx.fill();
+    // Windows (3 rows)
+    for(let row=0;row<3;row++){
+      for(let col=0;col<5;col++){
+        const wx=bx+20+col*52,wy=GY-110+row*32;
+        box(wx,wy,22,20,'#4488bb');box(wx,wy,10,20,'#66aadd');
+        // window pane cross
+        box(wx+10,wy,1,20,'#335577');box(wx,wy+9,22,1,'#335577');
+      }
+    }
+    // Columns at entrance
+    for(let col=0;col<4;col++){box(bx+100+col*22,GY-70,8,70,'#bbbbaa');}
+    // Door
+    box(bx+124,GY-40,32,40,'#554422');box(bx+140,GY-40,2,40,'#332211');
+    // Sign above
+    box(bx+60,GY-130,160,14,'#998855');
+    T('BATTLE CREEK SANITARIUM',bx+65,GY-128,'#221100',6);
+    // Chimney
+    box(bx+50,GY-175,16,55,'#998866');box(bx+48,GY-178,20,6,'#777755');
+  }
+
+  // Mid trees (scrolling)
+  [100,280,450,620,800,950,1100].forEach((bx2,i)=>scrollTree(scrollX,bx2,i,55+(i%3)*12,'#003300'));
+
+  // Road
+  drawRoad(scrollX,'#774422','#996644');
+
+  // Fence along road
+  for(let x=(-scrollX*0.85)%48-48;x<W+48;x+=48){
+    box(~~x+3,GY+2,4,18,'#885522');box(~~x+3,GY+2,4,4,'#664411');
+    hln(GY+6,'#774433');
+    hln(GY+12,'#774433');
+  }
+}
+
+// ─── SCENE: SANITARIUM LOBBY ──────────────────────────────────
+function drawLobby(scrollX,walkF){
+  // Interior — fancy Victorian lobby
+  box(0,0,W,GY,'#1a0a00'); // dark interior ceiling
+  // Walls with paneling
+  box(0,20,W,GY-60,'#553322');
+  // Chair rail
+  box(0,GY-65,W,5,'#774422');box(0,GY-64,W,2,'#996644');
+  // Upper wall paper (striped)
+  for(let x=0;x<W;x+=12){box(x,20,6,GY-85,'#443322');box(x+6,20,6,GY-85,'#332211');}
+  box(0,20,W,GY-84,'rgba(0,0,0,0.4)');
+
+  // Scroll: potted plants and pillars
+  [60,240,420,600,780,960].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.7+1200)%1200-60);
+    if(sx<-60||sx>W+10) return;
+    if(i%2===0){
+      // Column / pillar
+      box(sx,GY-80,16,80,'#ccbbaa');
+      box(sx-4,GY-82,24,6,'#ddccbb');box(sx-4,GY-4,24,6,'#ddccbb');
+    } else {
+      // Potted fern
+      box(sx+5,GY-28,10,28,'#774422');
+      box(sx,GY-28,20,8,'#665533');
+      box(sx+2,GY-50,16,25,'#006600');box(sx,GY-45,8,15,'#004400');box(sx+12,GY-45,8,15,'#004400');
+      box(sx+4,GY-58,12,14,'#005500');box(sx+6,GY-65,8,10,'#007700');
+    }
+  });
+
+  // Grandfather clock
+  const clkX=~~(520-scrollX*0.3);
+  if(clkX>-20&&clkX<W){
+    box(clkX,GY-90,30,90,'#5a3a10');box(clkX+2,GY-88,26,86,'#6a4a20');
+    box(clkX+5,GY-82,20,20,'#ccaa33');
+    // clock hands
+    const angle=Date.now()/1000;
+    cx.strokeStyle='#000';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(clkX+15,GY-72);cx.lineTo(clkX+15+Math.cos(angle)*6,GY-72+Math.sin(angle)*6);cx.stroke();
+    cx.beginPath();cx.moveTo(clkX+15,GY-72);cx.lineTo(clkX+15+Math.cos(angle*12)*3,GY-72+Math.sin(angle*12)*3);cx.stroke();
+    box(clkX+5,GY-58,20,46,'#5a3a10'); // pendulum case
+    box(clkX+13,GY-55,4,40,'#442a08'); // pendulum
+    box(clkX+10,GY-22,10,6,'#ccaa33'); // weight
+  }
+
+  // Floor boards
+  box(0,GY-4,W,H-GY+4,'#6a4a20');
+  for(let x=0;x<W;x+=40){box(~~(x-scrollX*0.5)%W,GY-4,39,H-GY+4,'#5a3a18');hln(GY-4,'#885522');}
+  drawRoad(scrollX,'#6a4a20','#885522');
+}
+
+// ─── SCENE: LECTURE HALL ──────────────────────────────────────
+function drawLectureHall(scrollX,walkF){
+  box(0,0,W,GY,'#0a0a18');
+  // Walls — dark paneled wood
+  box(0,20,W,GY-20,'#221a08');
+  // Wainscoting
+  box(0,GY-50,W,4,'#443a18');box(0,GY-44,W,2,'#887744');
+  // Blackboard (scrolls into view)
+  const bbX=~~(150-scrollX*0.15);
+  if(bbX>-180&&bbX<W){
+    box(bbX,GY-140,200,100,'#112211');
+    box(bbX-4,GY-144,208,4,'#664422');box(bbX-4,GY-40,208,4,'#664422');
+    vln(bbX-4,GY-144,GY-36,'#664422');vln(bbX+204,GY-144,GY-36,'#664422');
+    // Chalk writing (Kellogg's diagrams)
+    T('MEAT = VICE',bbX+20,GY-130,'#aaaaaa',8);
+    T('VICE = BOWEL DISEASE',bbX+10,GY-116,'#888888',7);
+    T('BOWEL DISEASE = VICE',bbX+10,GY-104,'#888888',7);
+    // Arrow circle
+    cx.strokeStyle='#888';cx.lineWidth=1;
+    cx.beginPath();cx.arc(bbX+100,GY-75,16,0,Math.PI*2);cx.stroke();
+    T('???',bbX+90,GY-80,'#aaaaaa',7);
+    // Chalk tray
+    box(bbX,GY-36,200,5,'#888877');
+    for(let c=0;c<5;c++)box(bbX+20+c*30,GY-35,8,4,'#ddddcc');
+  }
+
+  // Rows of chairs with silhouetted patients
+  [0,140,280,420,560,700].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.6+1200)%1200-60);
+    if(sx<-80||sx>W) return;
+    // chair
+    box(sx+2,GY-38,28,38,'#3a2a10');box(sx,GY-40,32,4,'#4a3a20');
+    // silhouetted patient seated
+    box(sx+8,GY-72,16,34,'#1a1a2a'); // body
+    cx.fillStyle='#1a1a2a';cx.beginPath();cx.arc(sx+16,GY-76,9,0,Math.PI*2);cx.fill();
+    // some have arms raised (asking questions? falling asleep?)
+    if(i%3===0){box(sx+22,GY-78,4,16,'#1a1a2a');}
+  });
+
+  // Podium at right
+  const podX=~~(450-scrollX*0.05);
+  if(podX>0&&podX<W+40){
+    box(podX,GY-65,55,65,'#3a2a10');
+    box(podX-5,GY-68,65,6,'#4a3a20');
+    // papers on podium
+    box(podX+8,GY-66,38,4,'#ffffee');box(podX+10,GY-60,30,3,'#ffffee');
+  }
+
+  box(0,GY-4,W,4,'#3a2a10');
+  box(0,GY,W,H-GY,'#1a1210');
+  drawRoad(scrollX,'#2a1a08','#3a2a10');
+}
+
+// ─── SCENE: HYDROTHERAPY WING ─────────────────────────────────
+function drawHydroWing(scrollX,walkF){
+  box(0,0,W,GY,'#0a1520');
+  // Tiled walls
+  for(let tx=0;tx<W;tx+=24){for(let ty=0;ty<GY-20;ty+=20){
+    box(tx,ty,22,18,'#1a2a3a');cx.strokeStyle='rgba(100,150,180,0.15)';cx.lineWidth=1;cx.strokeRect(tx,ty,22,18);
+  }}
+  box(0,GY-22,W,4,'#2a4a6a'); // dado rail
+
+  // Scrolling hydrotherapy tubs (the main feature)
+  [50,270,490,710,930].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.75+1400)%1400-100);
+    if(sx<-120||sx>W+20) return;
+    const tubW=120,tubH=55;
+    // Tub body
+    box(sx,GY-tubH,tubW,tubH,'#3a6888');
+    box(sx+3,GY-tubH+3,tubW-6,tubH-6,'#5a88a8'); // inner
+    box(sx,GY-tubH,tubW,6,'#2a5a78'); // rim
+    // Water / yogurt fill
+    box(sx+3,GY-tubH+3,tubW-6,tubH-12,'#f0ede0'); // yogurt white
+    // Wave animation
+    const wave=Math.sin(Date.now()/600+i)*3;
+    box(sx+3,~~(GY-tubH+3+wave),tubW-6,4,'rgba(255,255,255,0.2)');
+    // Patient silhouette in tub
+    box(sx+20,GY-tubH+8,80,16,'#cc9966'); // body in tub
+    cx.fillStyle='#cc9966';cx.beginPath();cx.arc(sx+tubW-22,GY-tubH+10,11,0,Math.PI*2);cx.fill(); // head
+    // face expression (resigned)
+    cx.fillStyle='#993322';
+    cx.beginPath();cx.arc(sx+tubW-22,GY-tubH+13,4,0,Math.PI);cx.stroke(); // frown
+    // Pipe/tube connected
+    box(sx+tubW,GY-tubH+20,20,4,'#885522');
+    // Label
+    box(sx+25,GY-tubH+28,70,12,'#ffffee');
+    T('YOGURT TUB #'+(i+1),sx+27,GY-tubH+30,'#554422',6);
+    // Feet sticking out one end
+    box(sx+2,GY-tubH+40,12,8,'#cc9966');box(sx+4,GY-tubH+46,5,6,'#aa7744');box(sx+9,GY-tubH+46,5,6,'#aa7744');
+  });
+
+  // Pipes on ceiling
+  for(let px=0;px<W;px+=50){
+    const psx=~~((px-scrollX*0.3)%800);
+    if(psx>=0&&psx<W){box(psx,8,40,8,'#445566');box(psx,12,40,4,'#334455');}
+  }
+
+  box(0,GY-4,W,H-GY,'#1a2a3a');
+  drawRoad(scrollX,'#1a2a3a','#2a3a4a');
+}
+
+// ─── SCENE: KITCHEN DAY ───────────────────────────────────────
+function drawKitchenDay(scrollX,walkF){
+  box(0,0,W,GY,'#0a0a05');
+  // Brick wall
+  for(let bx=0;bx<W;bx+=40){for(let by=0;by<GY-20;by+=16){
+    const off=Math.floor(by/16)%2*20;
+    box(~~(bx+off-scrollX*0.08)%W,by,38,14,'#1a1005');
+    cx.strokeStyle='rgba(0,0,0,0.5)';cx.lineWidth=1;
+    cx.strokeRect(~~(bx+off-scrollX*0.08)%W+0.5,by+0.5,37,13);
+  }}
+
+  // Kitchen equipment (scrolling)
+  [30,260,490,720,950].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.7+1400)%1400-120);
+    if(sx<-130||sx>W+20) return;
+    // Long counter
+    box(sx,GY-52,130,52,'#4a4a2a');box(sx-2,GY-55,134,6,'#6a6a3a');
+    // Various grain equipment on counter
+    // Roller machine
+    box(sx+10,GY-82,40,30,'#555538');box(sx+12,GY-80,36,26,'#333320');
+    box(sx+18,GY-92,24,12,'#444430'); // funnel top
+    cx.strokeStyle='#888860';cx.lineWidth=1;
+    cx.beginPath();cx.arc(sx+30,GY-68,8,0,Math.PI*2);cx.stroke(); // roller wheel
+    T('GRAIN ROLLER',sx+5,GY-100,'#aa9944',6);
+    // Vat of boiled grain
+    box(sx+70,GY-78,50,78,'#665528');
+    box(sx+68,GY-82,54,8,'#887740');
+    box(sx+72,GY-74,46,62,'#553318'); // inner dark
+    // steam from vat
+    for(let s2=0;s2<3;s2++){
+      const st=(Date.now()/600+s2*0.33)%1;
+      cx.fillStyle=`rgba(200,200,180,${(1-st)*0.5})`;
+      box(sx+82+s2*8,~~(GY-82-st*30),4,4,`rgba(200,200,180,${(1-st)*0.5})`);
+    }
+    T('BOILED GRAIN',sx+70,GY-94,'#887740',6);
+  });
+
+  // Window with outside light
+  const winX=~~(350-scrollX*0.1);
+  if(winX>-40&&winX<W){
+    box(winX,GY-140,60,100,'#4488cc');
+    for(let wy=0;wy<4;wy++)box(winX,GY-140+wy*25,60,24,'#5599dd');
+    box(winX+28,GY-140,4,100,'#884422'); // vertical bar
+    box(winX,GY-90,60,4,'#884422'); // horizontal bar
+    // Light spill
+    cx.fillStyle='rgba(100,160,220,0.1)';
+    cx.beginPath();cx.moveTo(winX,GY-140);cx.lineTo(winX+60,GY-140);cx.lineTo(winX+90,GY-20);cx.lineTo(winX-30,GY-20);cx.closePath();cx.fill();
+  }
+
+  box(0,GY-4,W,H-GY,'#1a1408');
+  drawRoad(scrollX,'#1a1408','#2a2010');
+}
+
+// ─── SCENE: SUNROOM ───────────────────────────────────────────
+function drawSunroom(scrollX,walkF){
+  box(0,0,W,GY,'#1a3008');
+  // Bright windows (many)
+  [0,130,260,390,520,650,780].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.6+1300)%1300-80);
+    if(sx<-80||sx>W+10) return;
+    // Window frame
+    box(sx,0,80,GY-20,'#2a5010');
+    cx.strokeStyle='#4a7a20';cx.lineWidth=3;cx.strokeRect(sx+1,1,78,GY-22);
+    // Glass panes
+    for(let py=0;py<4;py++)for(let px2=0;px2<2;px2++){
+      box(sx+4+px2*36,6+py*44,32,38,'#88bb44');
+      box(sx+4+px2*36,6+py*44,14,38,'#aad055');
+    }
+    // Mullions
+    box(sx+38,0,4,GY-20,'#4a7a20');
+    for(let py=0;py<4;py++)box(sx,6+py*44,80,4,'#4a7a20');
+    // Light beam
+    cx.fillStyle='rgba(180,220,100,0.08)';
+    cx.beginPath();cx.moveTo(sx,0);cx.lineTo(sx+80,0);cx.lineTo(sx+100,GY);cx.lineTo(sx-20,GY);cx.closePath();cx.fill();
+  });
+
+  // Wicker chairs / tables (scrolling furniture)
+  [80,240,400,560,720].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.8+1400)%1400-60);
+    if(sx<-70||sx>W+10) return;
+    // Small table
+    box(sx+10,GY-38,40,4,'#885533');box(sx+14,GY-34,6,34,'#774422');box(sx+40,GY-34,6,34,'#774422');
+    // Bowl on table (whatever beige thing they serve)
+    box(sx+18,GY-46,24,10,'#bbaa55');box(sx+20,GY-44,20,7,'#ddccaa');
+    // Wicker chair beside it
+    box(sx+54,GY-44,34,44,'#aa8844');
+    box(sx+54,GY-44,34,4,'#cc9955');box(sx+54,GY-14,34,6,'#cc9955');
+    vln(sx+54,GY-44,GY,C.DYEL);vln(sx+88,GY-44,GY,C.DYEL);
+    // Crosshatch on chair back
+    for(let w2=0;w2<4;w2++)for(let h2=0;h2<5;h2++)box(sx+57+w2*7,GY-40+h2*6,5,4,'#cc9955');
+    // Seated patient silhouette
+    box(sx+56,GY-76,28,34,'#cccccc');
+    cx.fillStyle='#cccccc';cx.beginPath();cx.arc(sx+70,GY-80,10,0,Math.PI*2);cx.fill();
+  });
+
+  box(0,GY-4,W,H-GY,'#1a2808');
+  drawRoad(scrollX,'#1a2808','#2a3a10');
+}
+
+// ─── SCENE: KITCHEN NIGHT ─────────────────────────────────────
+function drawKitchenNight(scrollX,walkF){
+  box(0,0,W,GY,'#030304');
+  // Same brick wall but dark
+  for(let bx=0;bx<W;bx+=40){for(let by=0;by<GY-20;by+=16){
+    const off=Math.floor(by/16)%2*20;
+    box(~~(bx+off-scrollX*0.08)%W,by,38,14,'#0d0d08');
+    cx.strokeStyle='rgba(0,0,0,0.7)';cx.lineWidth=1;
+    cx.strokeRect(~~(bx+off-scrollX*0.08)%W+0.5,by+0.5,37,13);
+  }}
+
+  // Oil lamp glow (key visual)
+  const lampX=~~(320-scrollX*0.05);
+  if(lampX>-50&&lampX<W+50){
+    // Lamp
+    box(lampX-4,GY-80,12,40,'#665522');
+    box(lampX-6,GY-84,16,8,'#885533');
+    box(lampX-3,GY-44,10,44,'#665522');
+    // Flame
+    const flicker=0.7+0.3*Math.sin(Date.now()/80);
+    cx.fillStyle=`rgba(255,200,50,${flicker})`;
+    cx.beginPath();cx.ellipse(lampX+2,GY-84,6,12,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle=`rgba(255,120,20,${flicker*0.8})`;
+    cx.beginPath();cx.ellipse(lampX+2,GY-86,3,7,0,0,Math.PI*2);cx.fill();
+    // Warm glow radius
+    const glow=cx.createRadialGradient(lampX+2,GY-80,5,lampX+2,GY-80,200);
+    glow.addColorStop(0,`rgba(200,150,50,${0.15*flicker})`);
+    glow.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=glow;cx.fillRect(0,0,W,GY);
+  }
+
+  // Counter with CORN FLAKES scattered (the discovery!)
+  [80,260,440,620,800].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.7+1400)%1400-80);
+    if(sx<-90||sx>W+20) return;
+    box(sx,GY-52,120,52,'#2a2a18');box(sx-2,GY-55,124,6,'#3a3a20');
+    // Corn flakes on counter (the big reveal)
+    for(let f=0;f<10;f++){
+      const fx=sx+5+f*11;
+      const fa=Date.now()/500+f;
+      cx.save();cx.translate(fx,GY-58);cx.rotate(Math.sin(fa)*0.4);
+      box(-6,-3,14,5,'#ddcc33');box(-3,-2,8,3,'#aaa022');
+      cx.restore();
+    }
+    T('CORN FLAKES',sx+8,GY-74,'#ddcc33',6);
+  });
+
+  box(0,GY-4,W,H-GY,'#050504');
+  drawRoad(scrollX,'#0a0a05','#151508');
+}
+
+// ─── SCENE: KELLOGG'S OFFICE (argument) ──────────────────────
+function drawOffice(scrollX,walkF){
+  box(0,0,W,GY,'#080504');
+  // Dark paneled walls
+  box(0,15,W,GY-35,'#221508');
+  // Chair rail
+  box(0,GY-65,W,5,'#553320');box(0,GY-64,W,2,'#775533');
+  // Wallpaper — dark red vertical stripes
+  for(let x=0;x<W;x+=14){box(x,15,7,GY-80,'#1a0a04');}
+  box(0,15,W,GY-80,'rgba(0,0,0,0.3)');
+
+  // Bookshelves
+  [0,180,360,540,720].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.5+1400)%1400-80);
+    if(sx<-90||sx>W+20) return;
+    box(sx,GY-130,90,90,'#3a2008');
+    for(let row=0;row<3;row++){
+      box(sx,GY-130+row*30,90,2,'#221008');
+      // Books — alternating colors
+      const bookCols=['#aa2200','#224488','#225500','#885500','#442288','#aa4400'];
+      for(let b=0;b<9;b++){
+        box(sx+b*10,GY-128+row*30,9,28,bookCols[(b+row+i)%bookCols.length]);
+        box(sx+b*10,GY-128+row*30,9,2,'#000000');
+      }
+    }
+  });
+
+  // Desk
+  const deskX=~~(400-scrollX*0.08);
+  if(deskX>-100&&deskX<W+20){
+    box(deskX,GY-60,120,60,'#3a2008');
+    box(deskX-5,GY-65,130,8,'#4a2a10');
+    // Papers on desk
+    box(deskX+10,GY-62,40,10,'#ffffee');box(deskX+15,GY-68,35,8,'#ffffdd');
+    box(deskX+60,GY-62,35,10,'#ffffee');
+    // Wheat flakes in bowl on desk (the disputed item)
+    box(deskX+45,GY-68,30,10,'#cc9944');box(deskX+47,GY-66,26,7,'#ddcc55');
+    // Flakes
+    for(let f=0;f<5;f++){
+      cx.save();cx.translate(deskX+49+f*5,GY-63);cx.rotate(f*0.5);
+      box(-4,-2,8,3,'#ccbb33');cx.restore();
+    }
+    T('THE FLAKES',deskX+38,GY-80,'#ccbb33',6);
+    // Inkwell
+    box(deskX+90,GY-62,12,10,'#111144');
+  }
+
+  box(0,GY-4,W,H-GY,'#1a0a04');
+  drawRoad(scrollX,'#1a0a04','#221008');
+}
+
+// ─── SCENE: VICTORY ───────────────────────────────────────────
+function drawVictoryScene(scrollX,walkF){
+  // Dawn sky
+  const dawn=cx.createLinearGradient(0,0,0,GY);
+  dawn.addColorStop(0,'#0a1528');dawn.addColorStop(0.5,'#2a1808');dawn.addColorStop(1,'#6a4818');
+  cx.fillStyle=dawn;cx.fillRect(0,0,W,GY);
+
+  // Rising sun
+  const sunX=~~(W/2-scrollX*0.03);
+  cx.fillStyle='#ffdd44';cx.beginPath();cx.arc(sunX,GY-20,28,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#ffcc22';cx.beginPath();cx.arc(sunX,GY-20,20,0,Math.PI*2);cx.fill();
+  const sunGlow=cx.createRadialGradient(sunX,GY-20,20,sunX,GY-20,160);
+  sunGlow.addColorStop(0,'rgba(255,200,50,0.3)');sunGlow.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=sunGlow;cx.fillRect(0,0,W,GY);
+
+  // Golden trees
+  [60,200,380,550,720,900].forEach((bx,i)=>{
+    const sx=~~((bx-scrollX*0.7+1400)%1400-70);
+    if(sx<-70||sx>W+20) return;
+    box(sx+8,GY-65,6,65,'#5a3010');
+    box(sx,GY-75,22,55,'#1a3a08');
+    box(sx+3,GY-85,16,15,'#2a5010');
+    // Corn flake "leaves" glowing in dawn
+    box(sx+5,GY-88,12,6,'#ddcc33');
+    box(sx,GY-70,8,6,'#ccbb22');box(sx+14,GY-70,8,6,'#ccbb22');
+  });
+
+  drawRoad(scrollX,'#7a5a20','#aa8840');
+
+  // Celebration flakes floating
+  for(let f=0;f<15;f++){
+    const t=Date.now()/800;
+    const fx=~~(((f*113+scrollX*0.3)%W));
+    const fy=~~(GY-20-(Math.sin(t+f)*30+30));
+    cx.save();cx.translate(fx,fy);cx.rotate(t+f);
+    box(-6,-3,14,5,'#ddcc33');box(-3,-2,8,3,'#aaa022');
+    cx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NPC PLACEMENT HELPERS
+// ═══════════════════════════════════════════════
+function placeNPCs(sceneType,walkF){
+  const gy2=GY-20; // feet level
+  switch(sceneType){
+    case 'approach':
+      // Kellogg waiting at the sanitarium entrance
+      drawKellogg(460,gy2,walkF);
+      drawNurse(510,gy2,walkF,'tray');
+      break;
+    case 'lobby':
+      drawKellogg(420,gy2,walkF);
+      drawDoctor(490,gy2,walkF);
+      drawNurse(540,gy2,walkF,'tray');
+      break;
+    case 'lecture':
+      drawKellogg(380,gy2,walkF); // at podium area
+      drawFord(520,gy2,0); // seated, watching
+      break;
+    case 'hydrotherapy':
+      drawNurse(400,gy2,walkF,'enema');
+      drawDoctor(460,gy2,walkF);
+      drawNurse(520,gy2,walkF,'pot');
+      break;
+    case 'kitchen_day':
+      drawWill(440,gy2,walkF);
+      drawNurse(500,gy2,walkF,'tray');
+      break;
+    case 'sunroom':
+      drawPost(420,gy2,walkF);
+      drawDoctor(490,gy2,walkF);
+      break;
+    case 'kitchen_night':
+      drawWill(450,gy2,walkF);
+      break;
+    case 'office':
+      drawKellogg(370,gy2,walkF);
+      drawWill(470,gy2,walkF);
+      break;
+    case 'victory':
+      drawWill(380,gy2,walkF);
+      drawNurse(440,gy2,walkF,'tray');
+      drawKellogg(500,gy2,0); // frozen, disapproving, far away
+      break;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// OUTCOME SPRITES
+// ═══════════════════════════════════════════════
+function drawGoodSprite(x,y){
+  const t=Date.now()/500;
+  // Corn flake bowl with glowing sparkles
+  box(x+8,y+58,88,10,'#bb9933');box(x+4,y+34,96,26,'#cc9944');
+  box(x+8,y+37,88,20,'#eeeedd'); // milk
+  // Flakes floating
+  [[12,40],[28,37],[44,39],[60,38],[75,40],[20,43],[50,42],[36,38]].forEach(([fx,fy],i)=>{
+    const w2=Math.sin(t+i)*2;cx.save();cx.translate(x+fx+w2,y+fy);cx.rotate(Math.sin(t*0.7+i)*0.5);
+    box(-8,-3,16,5,'#ccbb33');box(-4,-2,8,3,'#999922');cx.restore();
+  });
+  // Big smile face above
+  box(x+30,y+4,44,30,'#cc9966'); // face
+  box(x+38,y+10,6,6,'#220000');box(x+58,y+10,6,6,'#220000'); // eyes
+  // Big grin (unlike Kellogg's patients, you're genuinely happy)
+  cx.strokeStyle='#330000';cx.lineWidth=2;
+  cx.beginPath();cx.arc(x+50,y+24,12,0.1,Math.PI-0.1);cx.stroke();
+  // Cheeks
+  box(x+32,y+20,8,6,'#ffaa88');box(x+62,y+20,8,6,'#ffaa88');
+  // Sparkles
+  [[2,8],[98,5],[100,35],[0,48],[50,2]].forEach(([sx,sy],i)=>{
+    const a=0.5+0.5*Math.sin(t*3+i);
+    cx.fillStyle=`rgba(255,255,80,${a})`;
+    box(x+sx-2,y+sy-2,4,4,`rgba(255,255,80,${a})`);
+    box(x+sx,y+sy-5,1,10,`rgba(255,220,0,${a})`);
+    box(x+sx-5,y+sy,10,1,`rgba(255,220,0,${a})`);
+  });
+  // Text
+  TC('GOOD CHOICE!',y+76,C.GR,8);
+}
+
+function drawBadSprite(x,y){
+  const t=Date.now()/600;
+  // Tombstone (Oregon Trail classic!)
+  box(x+18,y+14,68,62,'#888888');
+  cx.fillStyle='#888888';cx.beginPath();cx.arc(x+52,y+36,32,Math.PI,0);cx.fill();
+  // Inner darker stone
+  box(x+22,y+18,60,54,'#666666');
+  cx.fillStyle='#666666';cx.beginPath();cx.arc(x+52,y+36,28,Math.PI,0);cx.fill();
+  // Cross
+  box(x+48,y+18,8,30,'#888888');box(x+36,y+26,28,8,'#888888');
+  // RIP
+  T('R.I.P.',x+34,y+38,C.WH,7);T('SANITY',x+31,y+50,C.LG,6);T('1894',x+38,y+60,'#aaaaaa',6);
+  // Dirt mound
+  cx.fillStyle='#774422';cx.beginPath();cx.ellipse(x+52,y+82,50,12,0,0,Math.PI*2);cx.fill();
+  box(x+2,y+78,100,12,'#774422');
+  // Candles flickering
+  [x+10,x+90].forEach((cx3,i)=>{
+    const f=0.6+0.4*Math.sin(t*4+i*2);
+    box(cx3-2,y+60,4,20,C.YL);
+    box(cx3-3,y+53,6,10,`rgba(255,200,50,${f})`);
+    box(cx3-1,y+50,2,7,`rgba(255,130,10,${f})`);
+  });
+  // Enema pot to the side (the culprit)
+  box(x+68,y+24,28,28,C.DYEL);box(x+66,y+24,32,5,'#885522');
+  box(x+94,y+28,10,6,'#774411'); // handle
+  T('YOGURT',x+70,y+34,'#ffe8c0',5);
+  TC('BAD CHOICE.',y+97,C.RD,8);
+}
+
+function drawNeutralSprite(x,y){
+  const t=Date.now()/500;
+  const bob=~~(Math.sin(t)*3);
+  // Shrug character — patient in gown
+  const cx2=x+52;
+  box(cx2-16,y+40+bob,32,40,'#eeeecc'); // gown
+  box(cx2-14,y+78+bob,10,12,'#eeeecc');box(cx2+4,y+78+bob,10,12,'#eeeecc'); // legs
+  cx.fillStyle='#cc9966';cx.beginPath();cx.arc(cx2,y+32+bob,14,0,Math.PI*2);cx.fill(); // head
+  box(cx2-5,y+28+bob,4,4,'#331100');box(cx2+1,y+28+bob,4,4,'#331100'); // eyes
+  box(cx2-4,y+37+bob,8,3,'#774422'); // flat line mouth
+  // shrug arms up
+  box(cx2-28,y+42+bob,14,6,'#eeeecc');box(cx2+14,y+42+bob,14,6,'#eeeecc');
+  box(cx2-34,y+34+bob,8,12,'#cc9966');box(cx2+26,y+34+bob,8,12,'#cc9966'); // hands up
+  // ? marks bobbing
+  cx.fillStyle=C.YL;cx.font='bold 20px monospace';cx.textAlign='center';
+  cx.fillText('?',cx2-38,y+20+bob);cx.fillText('?',cx2+44,y+20+bob);
+  TC('NEUTRAL.',y+97,C.LG,8);
+}
+
+function drawVictorySprite(x,y){
+  const t=Date.now()/400;
+  // Giant happy corn flake sun!
+  const cx2=x+55,cy2=y+45;
+  // Rays
+  for(let i=0;i<16;i++){
+    const a=i*Math.PI/8+t*0.4;
+    const alpha=0.4+0.3*Math.sin(t*2+i);
+    cx.strokeStyle=`rgba(255,220,50,${alpha})`;cx.lineWidth=3;
+    cx.beginPath();cx.moveTo(cx2+Math.cos(a)*30,cy2+Math.sin(a)*30);
+    cx.lineTo(cx2+Math.cos(a)*58,cy2+Math.sin(a)*58);cx.stroke();
+  }
+  cx.fillStyle='#ddcc33';cx.beginPath();cx.arc(cx2,cy2,28,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#bbaa22';cx.beginPath();cx.arc(cx2,cy2,18,0,Math.PI*2);cx.fill();
+  // Face
+  box(cx2-10,cy2-5,5,5,'#000');box(cx2+5,cy2-5,5,5,'#000');
+  cx.strokeStyle='#000';cx.lineWidth=2;cx.beginPath();cx.arc(cx2,cy2+6,9,0,Math.PI);cx.stroke();
+  // Orbiting mini flakes
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI*2/8+t;const r=46+Math.sin(t*2+i)*8;
+    const fx=cx2+Math.cos(a)*r,fy=cy2+Math.sin(a)*r;
+    cx.save();cx.translate(fx,fy);cx.rotate(a);
+    box(-7,-3,14,5,'#ccbb33');box(-3,-2,6,3,'#999922');cx.restore();
+  }
+  TC('CORN FLAKES!',y+100,C.YL,8);
+}
+
+function drawDeathSprite(){
+  const t=Date.now()/300;
+  // Giant tombstone center screen
+  box(W/2-55,50,110,120,'#999999');
+  cx.fillStyle='#999999';cx.beginPath();cx.arc(W/2,98,54,Math.PI,0);cx.fill();
+  box(W/2-51,54,102,110,'#666666');
+  cx.fillStyle='#666666';cx.beginPath();cx.arc(W/2,98,50,Math.PI,0);cx.fill();
+  // Cross
+  box(W/2-5,56,10,40,'#999999');box(W/2-20,72,40,10,'#999999');
+  // Text
+  TC('HERE LIES',100,C.WH,8);TC('YOUR SANITY',113,C.WH,8);TC('1894',126,C.LG,7);
+  // Ground
+  cx.fillStyle=C.DYEL;cx.beginPath();cx.ellipse(W/2,178,80,16,0,0,Math.PI*2);cx.fill();
+  box(W/2-80,170,160,18,C.DYEL);
+  // Candles flanking tombstone
+  [W/2-90,W/2+78].forEach((cxx,i)=>{
+    const f=0.6+0.4*Math.sin(t*5+i*3);
+    box(cxx-2,148,5,26,C.YL);
+    box(cxx-4,140,9,12,`rgba(255,200,50,${f})`);
+    box(cxx-1,135,3,8,`rgba(255,120,20,${f})`);
+  });
+  // Spinning skull face above tombstone
+  cx.save();cx.translate(W/2,45+Math.sin(t)*4);
+  box(-12,-14,24,22,'#eeeecc'); // skull
+  cx.fillStyle='#eeeecc';cx.beginPath();cx.arc(0,-3,12,Math.PI,0);cx.fill();
+  // x eyes
+  cx.strokeStyle=C.RD;cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(-8,-8);cx.lineTo(-2,-2);cx.stroke();cx.beginPath();cx.moveTo(-2,-8);cx.lineTo(-8,-2);cx.stroke();
+  cx.beginPath();cx.moveTo(2,-8);cx.lineTo(8,-2);cx.stroke();cx.beginPath();cx.moveTo(8,-8);cx.lineTo(2,-2);cx.stroke();
+  // teeth
+  for(let i=-2;i<=2;i++)box(i*5-2,6,4,7,'#eeeecc');
+  cx.restore();
+}
+
+// ═══════════════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════════════
+const EVENTS=[
+  {
+    scene:'approach',day:1,npc:'Kellogg',
+    header:'DAY 1  --  ARRIVAL',
+    sub:'BATTLE CREEK SANITARIUM, MICHIGAN',
+    lines:[
+      'You step off the train. Dr. John Harvey Kellogg',
+      'strides into the lobby in full white, dictating',
+      'a book while eating a cracker.',
+      '',
+      '"Your tongue has an unhealthy color."',
+      '"You will begin the GRAPE CURE immediately."',
+    ],
+    fact:'NOTE: Kellogg required 32 chews per bite, once per tooth, timed.',
+    choices:[
+      {k:'1',t:'Accept the grape cure with enthusiasm.',o:'good',e:{approval:1},
+       r:'Dr. Kellogg nods. Four days of only grapes. You are very hungry but your tongue reportedly improves in color.'},
+      {k:'2',t:'Politely ask what the grape cure involves.',o:'neutral',e:{},
+       r:'Only grapes. Four days. You receive a 40-page pamphlet on tongue health. You do not read all of it.'},
+      {k:'3',t:'State that your tongue looks perfectly fine.',o:'bad',e:{approval:-2,sanity:-5},
+       r:'"The tongue never lies." Room without windows. Grape cure: five days. So many grapes.'},
+    ],
+  },
+  {
+    scene:'lecture',day:3,npc:'Kellogg',
+    header:'DAY 3  --  MANDATORY LECTURE',
+    sub:'LECTURE HALL, THE SANITARIUM',
+    lines:[
+      '"Meat: the Devil\'s Cuisine and Its Ruinous',
+      'Effect on the American Digestive Character."',
+      '',
+      'Ninety minutes. Charts. Henry Ford is in',
+      'the third row and he looks deeply unimpressed',
+      'by everything, including you.',
+    ],
+    fact:'NOTE: Kellogg designed his menu to produce zero excitement whatsoever.',
+    choices:[
+      {k:'1',t:'Stay quiet. Write "WHAT IS HAPPENING" in journal.',o:'good',e:{approval:1},
+       r:'Your restraint is noticed. Selected for the advanced chewing demo. This is apparently a great honor.'},
+      {k:'2',t:'Ask why the food tastes like warm cardboard.',o:'neutral',e:{sanity:-5},
+       r:'"Flavor is excitement. Excitement agitates the bowel." He hands you a pamphlet. You already have this pamphlet.'},
+      {k:'3',t:'Mention you enjoyed chicken back home.',o:'bad',e:{approval:-2,sanity:-10,enemas:1},
+       r:'Removed for an emergency preventive enema. Ford watches you leave and shakes his head slowly.'},
+    ],
+  },
+  {
+    scene:'hydrotherapy',day:5,npc:'Nurse',
+    header:'DAY 5  --  HYDROTHERAPY',
+    sub:'HYDROTHERAPY WING, THE SANITARIUM',
+    lines:[
+      'It is time for your scheduled yogurt enema.',
+      'This is not a typo.',
+      '',
+      'Dr. Kellogg has published peer-reviewed papers',
+      'on this. The nurse is disturbingly cheerful.',
+      'The banker beside you is on his fourth today.',
+    ],
+    fact:'NOTE: Sometimes administered from both ends simultaneously for efficiency.',
+    choices:[
+      {k:'1',t:'Accept it. Think about something else entirely.',o:'good',e:{bowel:1,enemas:1,approval:1},
+       r:'You endure with great dignity. Chart: "excellent intestinal fortitude." The banker nods at you with profound respect.'},
+      {k:'2',t:'Ask if there is any less invasive option.',o:'neutral',e:{enemas:1,sanity:-5},
+       r:'There is not. Treatment proceeds. You stare at the tile ceiling and reconsider your life choices.'},
+      {k:'3',t:'Make a run for the exit.',o:'bad',e:{approval:-2,sanity:-15,enemas:1},
+       r:'Protocol exists for exactly this. Additional yogurt cultures added for the stress on your colon. More enemas than meals today.'},
+    ],
+  },
+  {
+    scene:'lobby',day:6,npc:'Kellogg',
+    header:'DAY 6  --  ELECTROTHERAPY',
+    sub:'ELECTROTHERAPY LAB, THE SANITARIUM',
+    lines:[
+      'Dr. Kellogg unveils a wooden cabinet lined',
+      'with one hundred incandescent light bulbs.',
+      '"Exhibited at the World\'s Fair. I designed it."',
+      '"Twenty minutes. It stimulates everything."',
+      '',
+      'The banker from the enema room waves at you',
+      'cheerfully from inside his own cabinet.',
+    ],
+    fact:'NOTE: Thomas Edison helped advise on Kellogg\'s electric lamp treatments.',
+    choices:[
+      {k:'1',t:'Climb in. Stare at the ceiling of bulbs.',o:'good',e:{sanity:5,approval:1},
+       r:'"Excellent fortitude." Kellogg makes a note. It is extremely warm. You emerge pink and oddly alert. Possibly mild burns.'},
+      {k:'2',t:'Ask for the peer-reviewed research first.',o:'neutral',e:{sanity:-5},
+       r:'You receive eleven pamphlets. The references cite other Kellogg pamphlets. You sit in the box for twenty minutes anyway.'},
+      {k:'3',t:'Note that it is essentially a large toaster.',o:'bad',e:{approval:-2,sanity:-20,enemas:1},
+       r:'"Heresy manifests physically in the bowel." Emergency enema. Then you sit in the box anyway. Still a large toaster.'},
+    ],
+  },
+  {
+    scene:'kitchen_day',day:8,npc:'Will',
+    header:'DAY 8  --  THE KITCHEN',
+    sub:'KITCHEN CORRIDOR, THE SANITARIUM',
+    lines:[
+      'A man outside the kitchen looks like Dr. Kellogg',
+      'but shorter, quieter, and far less terrifying.',
+      'He stares at a vat of boiled grain.',
+      '',
+      'This is Will Keith Kellogg, John\'s brother.',
+      'He has managed this building for 16 years.',
+      'He looks like every single one of them.',
+    ],
+    fact:'NOTE: Will was essentially his brother\'s indentured assistant for decades.',
+    choices:[
+      {k:'1',t:'Introduce yourself. Ask what he is working on.',o:'good',e:{sanity:5},
+       r:'Will\'s eyes light up. His notebook has the word CORN underlined six times. The beginning of something.'},
+      {k:'2',t:'Comment that the grain vat smells unusual.',o:'neutral',e:{},
+       r:'"It is boiled grain. It always smells like this." He has clearly spent years in silent contemplation of boiled grain.'},
+      {k:'3',t:'Mention Dr. Kellogg said his reports have errors.',o:'bad',e:{sanity:-10},
+       r:'Will\'s jaw tightens. "He said that." You have walked directly into 30 years of sibling resentment.'},
+    ],
+  },
+  {
+    scene:'sunroom',day:10,npc:'Penney',
+    header:'DAY 10  --  AN UNEXPECTED VISITOR',
+    sub:'SUNROOM, THE SANITARIUM',
+    lines:[
+      'J.C. Penney sits across from you, eating',
+      'something beige with the intense focus of',
+      'a man reorganizing national retail distribution.',
+      '',
+      '"Remarkable place. Runs like a department store.',
+      'Every patient a SKU. Every treatment a margin."',
+      'He seems to be cataloguing everything.',
+    ],
+    fact:'NOTE: Presidents, tycoons, and celebrities all checked into Battle Creek.',
+    choices:[
+      {k:'1',t:'Ask his opinion on the grain experiments.',o:'good',e:{sanity:10},
+       r:'"Brand it. Commodify it. Sell it before your brother does." Excellent advice, fifteen years early. You write it down.'},
+      {k:'2',t:'Eat your beige meal in comfortable silence.',o:'neutral',e:{sanity:5},
+       r:'He respects the silence. He mentally reorganizes American retail. You eat something that may be porridge. Pleasant.'},
+      {k:'3',t:'Tell him the enemas are "character building."',o:'bad',e:{sanity:-15},
+       r:'He stares at you for a very long time. Calls for his bill. You have driven away a future retail legend. Well done.'},
+    ],
+  },
+  {
+    scene:'sunroom',day:11,npc:'Post',
+    header:'DAY 11  --  THE SUNROOM',
+    sub:'SUNROOM, THE SANITARIUM',
+    lines:[
+      'Eating your afternoon meal -- something beige,',
+      'something gray -- when the man across from',
+      'you leans forward with scheming eyes.',
+      '',
+      '"Remarkable operation. Schedule, food,',
+      'philosophy -- completely repeatable commercially."',
+      'His name is C.W. Post. Not here for his health.',
+    ],
+    fact:'NOTE: Post invented Grape-Nuts: contains no grapes and no nuts.',
+    choices:[
+      {k:'1',t:'Ask if "Grape-Nuts" is a real product idea.',o:'good',e:{sanity:10},
+       r:'"Doesn\'t need grapes OR nuts," Post muses. You have just named Grape-Nuts. History credits you with nothing.'},
+      {k:'2',t:'Say you think he is onto something.',o:'neutral',e:{sanity:5},
+       r:'Post slides his cereal empire napkin-diagram across. You use it to clean your mouth. The diagram is lost.'},
+      {k:'3',t:'Report his suspicious behavior to Dr. Kellogg.',o:'bad',e:{approval:1,sanity:-10},
+       r:'Kellogg listens, thinks about bowels, does nothing. Post leaves days later vastly rich in stolen ideas.'},
+    ],
+  },
+  {
+    scene:'lobby',day:13,npc:'Post',
+    header:'DAY 13  --  THE DEPARTURE',
+    sub:'LOBBY, THE SANITARIUM',
+    lines:[
+      'C.W. Post checks out at the front desk.',
+      'Three bags. One very thick notebook.',
+      'He did not arrive with a notebook.',
+      '',
+      'He shakes your hand warmly.',
+      '"Remarkable operation. Completely reproducible."',
+      'A carriage waits. He tips his hat.',
+    ],
+    fact:'NOTE: Post opened his cereal factory one mile from here in Battle Creek, 1895.',
+    choices:[
+      {k:'1',t:'Ask what\'s in the notebook.',o:'neutral',e:{sanity:5},
+       r:'"Business ideas," he says, and winks in a way that implies several stolen recipes. He leaves. You stand there holding nothing.'},
+      {k:'2',t:'Wish him genuine luck.',o:'good',e:{sanity:10},
+       r:'He pauses. "You\'re going to need this." He hands you a prototype of something nutty. It is good. He will be very rich.'},
+      {k:'3',t:'Report the suspiciously thick notebook to Kellogg.',o:'bad',e:{approval:1,sanity:-15},
+       r:'Kellogg thinks about bowels for three minutes and does nothing. Post is already in Ohio. The notebook is gone forever.'},
+    ],
+  },
+  {
+    scene:'kitchen_night',day:14,npc:'Will',
+    header:'DAY 14  --  11:47 PM',
+    sub:'KITCHEN (NIGHT), THE SANITARIUM',
+    lines:[
+      'You cannot sleep. A lamp burns in the kitchen.',
+      'Will stands over wheat left out too long --',
+      'completely stale. He runs it through the',
+      'rollers anyway, out of sheer stubbornness.',
+      '',
+      'Instead of paste: thin individual FLAKES.',
+      'Light. Crisp. Something entirely new.',
+    ],
+    fact:'NOTE: The staleness was the key. It let each wheat berry flake separately.',
+    choices:[
+      {k:'1',t:'"Can I try one?" you ask quietly.',o:'good',e:{sanity:10},
+       r:'You eat the first corn flake at midnight in Michigan, 1894. Will watches your face carefully.'},
+      {k:'2',t:'Watch silently. Do not interrupt the moment.',o:'good',e:{sanity:15},
+       r:'Will eats the first flake alone. He stares at nothing for four minutes. You have witnessed the exact moment.'},
+      {k:'3',t:'Back away and tell Dr. Kellogg in the morning.',o:'bad',e:{approval:2,sanity:-20,bowel:-1},
+       r:'John claims it immediately: medical grain therapy, no sugar, strictly functional. Will says nothing. For now.'},
+    ],
+  },
+  {
+    scene:'office',day:17,npc:'Kellogg & Will',
+    header:'DAY 17  --  THE SUGAR ARGUMENT',
+    sub:'DR. KELLOGG\'S OFFICE, THE SANITARIUM',
+    lines:[
+      'Both brothers stand before the wheat flakes.',
+      'John regards them as something that might',
+      'accidentally be enjoyable, which worries him.',
+      '',
+      'WILL: "Add sugar. Sell them commercially."',
+      'JOHN: "Sugar agitates the bowel."',
+      'WILL: "Everything agitates the bowel."',
+    ],
+    fact:'NOTE: John sued Will for trademark infringement after Will added sugar. John lost.',
+    choices:[
+      {k:'1',t:'Side with Will. Sugar makes them better.',o:'good',e:{sanity:10,approval:-2,bowel:1},
+       r:'"You would feed people excitement," John says. "Breakfast," says Will. Something shifts permanently in this room.'},
+      {k:'2',t:'Stay silent. Stare at the flakes.',o:'neutral',e:{sanity:-5},
+       r:'Both men look at you. You say nothing. The argument continues for years. You feel fine about this.'},
+      {k:'3',t:'Propose "therapeutic sweetness" -- prescribed sugar.',o:'good',e:{sanity:5,approval:1},
+       r:'John strokes his beard. A therapeutic sweetness -- he could write a paper. Will mouths "thank you." Sugar goes in.'},
+    ],
+  },
+  {
+    scene:'kitchen_night',day:21,npc:'Will',
+    header:'DAY 21  --  CORN FLAKES',
+    sub:'KITCHEN (NIGHT), THE SANITARIUM',
+    lines:[
+      'Will has not slept in three days and has',
+      'developed the look of a man racing to build',
+      'something before his brother notices.',
+      '',
+      'On the counter: the first CORN flakes.',
+      'Not wheat. Corn. The kitchen smells',
+      'extraordinary. "Don\'t tell my brother."',
+    ],
+    fact:'NOTE: Will added malt flavoring and sugar -- both explicitly forbidden by John.',
+    choices:[
+      {k:'1',t:'Eat it. All of it. This is the moment.',o:'good',e:{sanity:20,bowel:1},
+       r:'Light. Crispy. Faintly sweet. The most normal meal in three weeks. You might be weeping. "Yeah," Will says. "That\'s it."'},
+      {k:'2',t:'Hold a flake to the light and examine it.',o:'neutral',e:{sanity:10},
+       r:'Translucent at the edges. Impossibly thin. Product of a thousand accidents. Then you eat it. Very good.'},
+      {k:'3',t:'Ask if Dr. Kellogg has approved this formula.',o:'bad',e:{sanity:-10,approval:1},
+       r:'Will\'s face goes completely flat. "No." He takes the bowl back. "And he won\'t." Beige food tomorrow. You deserve it.'},
+    ],
+  },
+];
+
+// ═══════════════════════════════════════════════
+// HUD
+// ═══════════════════════════════════════════════
+function drawHUD(G){
+  box(0,0,W,22,'#000022');
+  hln(22,C.CY);hln(23,'#003344');
+  T('SANITY:',6,5,C.DK,7);
+  box(58,7,84,8,'#001100');box(58,7,~~(G.sanity*0.84),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
+  cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(58,7,84,8);
+  T(G.sanity+'%',148,5,C.GR,7);
+  T('BOWEL:',195,5,C.DK,7);
+  const bn=['CRITICAL','POOR','OKAY','GOOD','OPTIMAL'];
+  T(bn[Math.max(0,Math.min(4,G.bowel))],245,5,C.YL,7);
+  T('ENEMAS:',360,5,C.DK,7);
+  T(String(G.enemas),415,5,C.CY,7);
+  T('KELLOGG:',445,5,C.DK,7);
+  T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),502,5,C.YL,7);
+  TR('DAY '+G.day,W-6,5,C.WH,7);
+}
+
+// ═══════════════════════════════════════════════
+// TRAVEL PROGRESS BAR
+// ═══════════════════════════════════════════════
+function drawProgressBar(dist,goal){
+  const by=H-36,bh=14,bx=8,bw=W-16;
+  T('TRAVELING TO NEXT STOP...',bx,by-14,C.DK,7);
+  box(bx,by,bw,bh,'#001100');
+  box(bx,by,~~(dist/goal*bw),bh,'#002200');
+  const prog=~~(dist/goal*bw);
+  // Wagon icon on progress bar
+  box(bx+prog-4,by-2,10,bh+4,'#005500');
+  box(bx+prog-3,by-1,8,bh+2,C.GR);
+  cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(bx,by,bw,bh);
+}
+
+// ═══════════════════════════════════════════════
+// TEXT BOX (bottom half)
+// ═══════════════════════════════════════════════
+const TB_Y=GY+4; // top of text box
+
+function drawEventBox(ev,hoverChoice){
+  box(0,GY,W,H-GY,'#000022');
+  hln(GY,C.CY);hln(GY+1,'#003344');
+  // Header row
+  T(ev.header,8,TB_Y+4,C.YL,8);
+  TR(ev.sub,W-8,TB_Y+4,C.CY,7);
+  hln(TB_Y+17,'#003344');hln(TB_Y+18,C.DCYA);
+
+  // Lines
+  let ty=TB_Y+23;
+  ev.lines.forEach(line=>{
+    const col=line.startsWith('"')||line.startsWith('WILL')||line.startsWith('JOHN')?C.CY:
+              line===''?C.BK:C.WH;
+    T(line,8,ty,col,7);ty+=11;
+  });
+  if(ev.fact){
+    hln(ty+1,'#553300');
+    T(ev.fact,8,ty+4,C.DYEL,6);ty+=14;
+  }
+  hln(ty+2,'#003344');ty+=7;
+
+  ev.choices.forEach((ch,i)=>{
+    const y2=ty+i*15;
+    if(hoverChoice===i)box(4,y2-1,W-8,13,'#002200');
+    T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,7);
+    T(ch.t,20,y2,hoverChoice===i?C.GR:C.WH,7);
+  });
+}
+
+function drawOutcomeBox(od,hoverCont,mouseY2){
+  // Left side: sprite
+  box(0,GY,220,H-GY,'#000011');
+  box(220,GY,1,H-GY,C.CY);
+  box(0,GY,W,H-GY,'rgba(0,0,20,0.0)');// transparent — sprite draws over
+  // sprite drawn in render
+  // Right side: result
+  const tx=228,ty=GY+4,tw=W-tx-8;
+  box(tx-2,GY,W-tx+2,H-GY,'#000022');
+  hln(GY,C.CY);hln(GY+1,'#003344');
+  const banCol=od.type==='good'?C.GR:od.type==='bad'?C.RD:C.LG;
+  const banTxt=od.type==='good'?'[ GOOD CHOICE ]':od.type==='bad'?'[ BAD CHOICE ]':'[ NEUTRAL ]';
+  T(banTxt,tx,ty+4,banCol,8);
+  hln(ty+16,'#003344');
+  const rlines=wrap(od.msg,tw-4,7);
+  let ry=ty+20;
+  rlines.forEach(l=>{T(l,tx,ry,C.WH,7);ry+=12;});
+  ry+=6;
+  od.statChanges.forEach(({label,delta})=>{
+    T((delta>0?'+':'')+delta+' '+label,tx,ry,delta>0?C.GR:C.RD,7);ry+=12;
+  });
+  hln(H-28,'#003344');
+  const contHov=mouseY2>=H-26&&mouseY2<=H-4;
+  T('SPACE OR CLICK TO CONTINUE  >>',tx,H-24,contHov?C.YL:C.GR,7);
+}
+
+// ═══════════════════════════════════════════════
+// TITLE / END SCREENS
+// ═══════════════════════════════════════════════
+function drawTitle(scrollX,walkF,blink){
+  drawScene('approach',scrollX,walkF);
+  drawPatient(100,GY-20,walkF);
+  drawKellogg(460,GY-20,walkF);
+  drawNurse(510,GY-20,walkF,'tray');
+  drawHUD({sanity:100,bowel:3,approval:5,enemas:0,day:1});
+
+  box(40,30,W-80,H-55,'#000022');
+  dbox(40,30,W-80,H-55,'#000022',C.CY);
+
+  TC('THE KELLOGG TRAIL',60,C.YL,18);
+  TC('BATTLE CREEK SANITARIUM',88,C.CY,9);
+  TC('MICHIGAN, 1894',100,C.DCYA,7);
+  hln(114,C.DBLU);hln(115,'#001133');
+  TC('Survive Dr. Kellogg\'s bowel health regime.',122,C.WH,7);
+  TC('Endure the yogurt enemas.',135,C.WH,7);
+  TC('Witness the discovery of corn flakes.',148,C.WH,7);
+  TC('(Everything in this game actually happened.)',162,C.LG,7);
+  hln(178,C.DBLU);
+  if(blink)TC('PRESS SPACE OR CLICK TO BEGIN',188,C.GR,9);
+  TC('USE NUMBER KEYS 1-3 OR CLICK TO CHOOSE',204,C.DK,7);
+  TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',222,C.DK,6);
+}
+
+function drawDeathEnd(G,hov){
+  box(0,0,W,H,'#000008');
+  drawDeathSprite();
+  box(0,196,W,H-196,'rgba(0,0,8,0.88)');
+  hln(196,C.RD);hln(197,'#440000');
+  TC('YOU HAVE DIED',205,C.RD,16);
+  hln(228,C.DRED);
+  TC('Your sanity was reorganized by Dr. Kellogg\'s regime.',236,C.LG,7);
+  TC('You were last seen writing pamphlets about bowels.',249,C.LG,7);
+  TC('The banker from Chicago seemed very concerned.',262,C.DK,7);
+  TC('Days survived: '+G.day+'      Enemas endured: '+G.enemas,280,C.YL,7);
+  dbox(W/2-90,302,180,28,'#000',hov?C.YL:C.RD);
+  TC('TRY AGAIN',310,hov?C.YL:C.RD,9);
+  drawHUD(G);
+}
+
+function drawVictoryEnd(G,hov,scrollX,walkF){
+  drawScene('victory',scrollX,walkF);
+  drawPatient(100,GY-20,walkF);
+  drawWill(180,GY-20,walkF);
+  drawNurse(240,GY-20,walkF,'tray');
+  drawKellogg(500,GY-20,0); // frozen, distant, disapproving
+  drawVictorySprite(W-130,120);
+  box(20,GY-2,W-40,H-GY-4,'rgba(0,0,20,0.92)');
+  hln(GY,C.YL);hln(GY+1,'#554400');
+  TC('CORN FLAKES DISCOVERED',GY+10,C.YL,12);
+  TC('BATTLE CREEK, MICHIGAN  1894',GY+28,C.CY,8);
+  hln(GY+40,'#003344');
+  TC('You survived the grape cure, the yogurt enemas,',GY+48,C.WH,7);
+  TC('and C.W. Post\'s suspicious napkin diagrams.',GY+61,C.WH,7);
+  TC('In a basement kitchen at midnight, you were there',GY+74,C.WH,7);
+  TC('when Will Kellogg discovered breakfast cereal.',GY+87,C.WH,7);
+  TC('Final sanity: '+G.sanity+'%   Enemas: '+G.enemas+'   Kellogg approval: '+G.approval+'/5',GY+104,C.YL,7);
+  dbox(W/2-100,GY+122,200,26,'#000',hov?C.YL:C.GR);
+  TC('PLAY AGAIN',GY+128,hov?C.YL:C.GR,9);
+  drawHUD(G);
+}
+
+// ═══════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════
+let mouseX=0,mouseY=0;
+function getMouse(e){
+  const r=cv.getBoundingClientRect();
+  mouseX=(e.clientX-r.left)*(W/r.width);
+  mouseY=(e.clientY-r.top)*(H/r.height);
+}
+cv.addEventListener('mousemove',e=>{
+  getMouse(e);
+  updateHover();
+});
+cv.addEventListener('click',e=>{getMouse(e);handleClick();});
+cv.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const t=e.touches[0];
+  mouseX=(t.clientX-r.left)*(W/r.width);
+  mouseY=(t.clientY-r.top)*(H/r.height);
+  handleClick();
+},{passive:false});
+window.addEventListener('keydown',e=>{
+  if(state==='title'&&(e.key===' '||e.key==='Enter')){startGame();return;}
+  if(state==='event'){
+    const i=parseInt(e.key)-1;
+    if(i>=0&&i<3)pickChoice(i);
+  }
+  if(state==='outcome'&&(e.key===' '||e.key==='Enter'))continueAfterOutcome();
+  if((state==='death'||state==='victory')&&(e.key===' '||e.key==='Enter'))restartGame();
+});
+
+let hoverChoice=-1;
+function updateHover(){
+  hoverChoice=-1;
+  if(state==='event'&&currentEvent){
+    const ev=currentEvent;
+    let ty=TB_Y+23;
+    ev.lines.forEach(l=>ty+=11);
+    if(ev.fact)ty+=14;
+    ty+=7;
+    ev.choices.forEach((ch,i)=>{
+      const y2=ty+i*15;
+      if(mouseY>=y2-1&&mouseY<=y2+13&&mouseX>=4&&mouseX<=W-4)hoverChoice=i;
+    });
+  }
+}
+function handleClick(){
+  if(state==='title'){startGame();return;}
+  if(state==='event'&&currentEvent){
+    const ev=currentEvent;
+    let ty=TB_Y+23;
+    ev.lines.forEach(l=>ty+=11);
+    if(ev.fact)ty+=14;
+    ty+=7;
+    for(let i=0;i<ev.choices.length;i++){
+      const y2=ty+i*15;
+      if(mouseY>=y2-1&&mouseY<=y2+13){pickChoice(i);return;}
+    }
+  }
+  if(state==='outcome'&&mouseY>=H-28)continueAfterOutcome();
+  if(state==='death'&&mouseY>=302&&mouseY<=330)restartGame();
+  if(state==='victory'&&mouseY>=GY+122&&mouseY<=GY+150)restartGame();
+}
+
+// ═══════════════════════════════════════════════
+// GAME LOGIC
+// ═══════════════════════════════════════════════
+let state='title';
+let G={sanity:100,bowel:3,approval:5,enemas:0,day:1};
+let sceneIdx=0;
+let currentEvent=null;
+let gameEvents=[];
+let outcomeData=null;
+let scroll=0,walkF=0;
+let travelDist=0,travelGoal=100;
+let titleT=0;
+
+function shuffleChoices(events){
+  return events.map(ev=>{
+    const choices=[...ev.choices].sort(()=>Math.random()-0.5)
+      .map((c,i)=>Object.assign({},c,{k:String(i+1)}));
+    return Object.assign({},ev,{choices});
+  });
+}
+function startGame(){
+  gameEvents=shuffleChoices(EVENTS);
+  state='travel';travelDist=0;travelGoal=90;sceneIdx=0;
+  currentEvent=null;outcomeData=null;
+}
+function triggerEvent(idx){
+  currentEvent=gameEvents[idx];
+  G.day=currentEvent.day;
+  state='event';hoverChoice=-1;
+}
+function pickChoice(i){
+  if(!currentEvent||!currentEvent.choices[i])return;
+  const ch=currentEvent.choices[i];
+  const e=ch.e||{};const changes=[];
+  if(e.sanity){changes.push({label:'SANITY',delta:e.sanity});G.sanity=Math.max(0,Math.min(100,G.sanity+e.sanity));}
+  if(e.bowel){changes.push({label:'BOWEL',delta:e.bowel});G.bowel=Math.max(0,Math.min(4,G.bowel+e.bowel));}
+  if(e.approval){changes.push({label:'KELLOGG',delta:e.approval});G.approval=Math.max(0,Math.min(5,G.approval+e.approval));}
+  if(e.enemas){changes.push({label:'ENEMAS',delta:e.enemas});G.enemas+=e.enemas;}
+  outcomeData={type:ch.o,msg:ch.r,statChanges:changes};
+  state='outcome';
+}
+function continueAfterOutcome(){
+  if(G.sanity<=0){state='death';return;}
+  sceneIdx++;
+  if(sceneIdx>=gameEvents.length){state='victory';return;}
+  state='travel';travelDist=0;travelGoal=80+Math.random()*40;
+  currentEvent=null;
+}
+function restartGame(){
+  G={sanity:100,bowel:3,approval:5,enemas:0,day:1};
+  sceneIdx=0;scroll=0;travelDist=0;travelGoal=90;
+  currentEvent=null;outcomeData=null;state='title';
+}
+
+// ═══════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════
+let lastT=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt=Math.min(ts-lastT,50)/16;lastT=ts;
+  cx.clearRect(0,0,W,H);
+
+  scroll+=1.2*dt;walkF+=0.09*dt;titleT+=0.04*dt;
+
+  if(state==='title'){
+    scroll+=0.6*dt;
+    drawTitle(scroll,walkF,Math.floor(titleT*2)%2===0);
+    return;
+  }
+  if(state==='travel'){
+    scroll+=2.5*dt;travelDist+=2.5*dt;
+    const ev=gameEvents[sceneIdx];
+    drawScene(ev.scene,scroll,walkF);
+    drawPatient(100,GY-20,walkF);
+    placeNPCs(ev.scene,walkF);
+    drawHUD(G);
+    // Grey out bottom for travel bar
+    box(0,GY,W,H-GY,'#000022');
+    hln(GY,C.CY);hln(GY+1,'#003344');
+    drawProgressBar(travelDist,travelGoal);
+    if(travelDist>=travelGoal)triggerEvent(sceneIdx);
+    return;
+  }
+  if(state==='event'&&currentEvent){
+    const ev=currentEvent;
+    drawScene(ev.scene,scroll*0.3,walkF*0.15);
+    drawPatient(100,GY-20,walkF*0.15);
+    placeNPCs(ev.scene,walkF);
+    drawHUD(G);
+    drawEventBox(ev,hoverChoice);
+    return;
+  }
+  if(state==='outcome'&&outcomeData&&currentEvent){
+    const ev=currentEvent;
+    drawScene(ev.scene,scroll*0.2,walkF*0.05);
+    drawPatient(100,GY-20,walkF*0.05);
+    placeNPCs(ev.scene,walkF*0.05);
+    drawHUD(G);
+    // Outcome sprite in text area left side
+    box(0,GY,220,H-GY,'#000011');
+    hln(GY,C.CY);
+    if(outcomeData.type==='good')drawGoodSprite(10,GY+4);
+    else if(outcomeData.type==='bad')drawBadSprite(8,GY+4);
+    else drawNeutralSprite(8,GY+4);
+    drawOutcomeBox(outcomeData,mouseY>=H-28,mouseY);
+    return;
+  }
+  if(state==='death'){
+    const hov=mouseY>=302&&mouseY<=330;
+    drawDeathEnd(G,hov);return;
+  }
+  if(state==='victory'){
+    scroll+=1.5*dt;
+    const hov=mouseY>=GY+122&&mouseY<=GY+150;
+    drawVictoryEnd(G,hov,scroll,walkF);return;
+  }
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
