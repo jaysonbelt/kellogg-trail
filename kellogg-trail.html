@@ -1467,7 +1467,7 @@ window.addEventListener('keydown',e=>{
     const i=parseInt(e.key)-1;
     if(i>=0&&i<3)pickChoice(i);
   }
-  if(state==='outcome'&&(e.key===' '||e.key==='Enter'))continueAfterOutcome();
+  if(state==='outcome'&&(e.key===' '||e.key==='Enter')){continueAfterOutcome();return;}
   if((state==='death'||state==='victory')&&(e.key===' '||e.key==='Enter'))restartGame();
 });
 
@@ -1499,7 +1499,7 @@ function handleClick(){
       if(mouseY>=y2-1&&mouseY<=y2+13){pickChoice(i);return;}
     }
   }
-  if(state==='outcome'&&mouseY>=H-28)continueAfterOutcome();
+  if(state==='outcome'&&mouseY>=H-28){continueAfterOutcome();return;}
   if(state==='death'&&mouseY>=302&&mouseY<=330)restartGame();
   if(state==='victory'&&mouseY>=GY+122&&mouseY<=GY+150)restartGame();
 }
