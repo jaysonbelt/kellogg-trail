@@ -1,4 +1,4 @@
-# The Kellogg Trail — Project Handoff
+# The Kellogg Trail
 
 ## What This Is
 An Oregon Trail–style browser game based on the true origin story of corn flakes at the Battle Creek Sanitarium (1894). The player navigates Dr. John Harvey Kellogg's insane health regime, survives yogurt enemas, witnesses C.W. Post steal the cereal concept, and is present when Will Kellogg discovers corn flakes at midnight. Everything in the game actually happened.
