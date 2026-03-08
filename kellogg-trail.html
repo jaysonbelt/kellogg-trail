@@ -910,7 +910,7 @@ function drawGoodSprite(x,y){
     box(x+sx-5,y+sy,10,1,`rgba(255,220,0,${a})`);
   });
   // Text
-  TC('GOOD CHOICE!',y+76,C.GR,8);
+  cx.font='8px "Courier New",monospace';cx.fillStyle=C.GR;cx.textBaseline='top';cx.textAlign='center';cx.fillText('GOOD CHOICE!',x+52,y+76);
 }
 
 function drawBadSprite(x,y){
@@ -939,7 +939,7 @@ function drawBadSprite(x,y){
   box(x+68,y+24,28,28,C.DYEL);box(x+66,y+24,32,5,'#885522');
   box(x+94,y+28,10,6,'#774411'); // handle
   T('YOGURT',x+70,y+34,'#ffe8c0',5);
-  TC('BAD CHOICE.',y+97,C.RD,8);
+  cx.font='8px "Courier New",monospace';cx.fillStyle=C.RD;cx.textBaseline='top';cx.textAlign='center';cx.fillText('BAD CHOICE.',x+52,y+97);
 }
 
 function drawNeutralSprite(x,y){
@@ -958,7 +958,7 @@ function drawNeutralSprite(x,y){
   // ? marks bobbing
   cx.fillStyle=C.YL;cx.font='bold 20px monospace';cx.textAlign='center';
   cx.fillText('?',cx2-38,y+20+bob);cx.fillText('?',cx2+44,y+20+bob);
-  TC('NEUTRAL.',y+97,C.LG,8);
+  cx.font='8px "Courier New",monospace';cx.fillStyle=C.LG;cx.textBaseline='top';cx.textAlign='center';cx.fillText('NEUTRAL.',x+52,y+97);
 }
 
 function drawVictorySprite(x,y){
@@ -1350,9 +1350,9 @@ function drawEventBox(ev,hoverChoice){
 function drawOutcomeBox(od,hoverCont,mouseY2){
   // Left side: sprite background then sprite
   box(0,GY,220,H-GY,'#000011');
-  if(od.type==='good')drawGoodSprite(10,GY+4);
-  else if(od.type==='bad')drawBadSprite(8,GY+4);
-  else drawNeutralSprite(8,GY+4);
+  if(od.type==='good')drawGoodSprite(58,GY+38);
+  else if(od.type==='bad')drawBadSprite(58,GY+28);
+  else drawNeutralSprite(58,GY+28);
   box(220,GY,1,H-GY,C.CY);
   // Right side: result
   const tx=228,ty=GY+4,tw=W-tx-8;
