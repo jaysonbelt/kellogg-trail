@@ -21,10 +21,9 @@ cv.width=W*DPR;cv.height=H*DPR;
 cx.scale(DPR,DPR);
 
 function resize(){
-  const max=Math.min(window.innerWidth/W,window.innerHeight/H);
-  const s=Math.max(1,Math.floor(max));
-  cv.style.width=(W*s)+'px';
-  cv.style.height=(H*s)+'px';
+  const s=Math.min(window.innerWidth/W,window.innerHeight/H);
+  cv.style.width=Math.floor(W*s)+'px';
+  cv.style.height=Math.floor(H*s)+'px';
 }
 resize();
 window.addEventListener('resize',resize);
@@ -1349,11 +1348,12 @@ function drawEventBox(ev,hoverChoice){
 }
 
 function drawOutcomeBox(od,hoverCont,mouseY2){
-  // Left side: sprite
+  // Left side: sprite background then sprite
   box(0,GY,220,H-GY,'#000011');
+  if(od.type==='good')drawGoodSprite(10,GY+4);
+  else if(od.type==='bad')drawBadSprite(8,GY+4);
+  else drawNeutralSprite(8,GY+4);
   box(220,GY,1,H-GY,C.CY);
-  box(0,GY,W,H-GY,'rgba(0,0,20,0.0)');// transparent — sprite draws over
-  // sprite drawn in render
   // Right side: result
   const tx=228,ty=GY+4,tw=W-tx-8;
   box(tx-2,GY,W-tx+2,H-GY,'#000022');
@@ -1603,12 +1603,6 @@ function loop(ts){
     drawPatient(100,GY-20,walkF*0.05);
     placeNPCs(ev.scene,walkF*0.05);
     drawHUD(G);
-    // Outcome sprite in text area left side
-    box(0,GY,220,H-GY,'#000011');
-    hln(GY,C.CY);
-    if(outcomeData.type==='good')drawGoodSprite(10,GY+4);
-    else if(outcomeData.type==='bad')drawBadSprite(8,GY+4);
-    else drawNeutralSprite(8,GY+4);
     drawOutcomeBox(outcomeData,mouseY>=H-28,mouseY);
     return;
   }
