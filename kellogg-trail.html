@@ -1404,75 +1404,63 @@ function finishSQ(won,title,msg,changes){
 const SQ_INTRO={
   baseball:{
     title:'HENRY FORD CHALLENGES YOU',
-    who:'Ford',
-    lines:[
-      'Ford stops you outside the lecture hall.',
-      '"You look like a man who\'s played ball."',
-      '"One pitch. One at-bat. Don\'t embarrass',
-      'yourself." He hands you a clean ball.',
-    ],
+    name:'BASEBALL',
+    what:["Pitcher vs. batter. America's game, 1894."],
+    why:['Ford plays for the sanitarium guest team','on Thursdays. He is deadly serious about it.'],
     howto:[
       '1. Pick a PITCH TYPE on the left.',
       '2. Click a ZONE on the grid to aim.',
-      '3. Hit PITCH! If they miss, you bat.',
-      '4. Click/tap to SWING when the ball',
-      '   enters the strike zone.',
+      '3. Hit PITCH! — try to get the out.',
+      '4. If they miss: step up to bat.',
+      '5. Click/tap when the ball enters the zone.',
     ],
+    towin:'Get the batter out. Then hit a home run.',
     cta:'PLAY BALL',
     col:C.YL,
   },
   electric:{
     title:'THE BANKER\'S CHALLENGE',
-    who:'The Banker',
-    lines:[
-      'The banker waves you over. "Electric',
-      'parlor game. Hold the electrode. Survive',
-      '20 seconds. Don\'t let go." He hands you',
-      'a copper rod. It smells of burnt wool.',
-    ],
+    name:'THE ELECTRIC PARLOR GAME',
+    what:['Hold the electrode. Last man standing wins.'],
+    why:['Kellogg installed electric cabinets throughout','the San. Parlor voltage contests were fashionable.'],
     howto:[
       '1. Click GRAB to hold the electrode.',
       '2. SHOCK rises while holding.',
-      '3. RELEASE before shock hits 100%.',
-      '4. GRIP drops when released.',
-      '5. Grab again before grip hits 0%.',
+      '3. RELEASE before SHOCK hits 100%.',
+      '4. GRIP falls when released — regrab',
+      '   before GRIP hits 0%.',
     ],
+    towin:'Outlast the current for 20 seconds.',
     cta:'GRAB THE ELECTRODE',
     col:C.CY,
   },
   vingtun:{
     title:'POST PRODUCES A DECK',
-    who:'C.W. Post',
-    lines:[
-      'Post leans over with a very clean deck.',
-      '"Vingt-et-un. Highest total under 21',
-      'wins." His eyes say he has done this',
-      'before. Many times.',
-    ],
+    name:'VINGT-ET-UN',
+    what:['Reach 21 without busting. Higher hand wins.'],
+    why:['Post will steal the corn flake concept and','die a millionaire. Beat him at cards first.'],
     howto:[
       '1. You and Post each get 2 cards.',
       '2. HIT to draw another card.',
       '3. STAND to stop and let Post play.',
-      '4. Closest to 21 without busting wins.',
+      '4. Highest total under 21 wins.',
     ],
+    towin:'Beat Post\'s hand without going over 21.',
     cta:'DEAL THE CARDS',
     col:C.GR,
   },
   flashlight:{
     title:'WILL NEEDS YOUR HELP',
-    who:'Will Kellogg',
-    lines:[
-      'Will grabs your arm in the dark kitchen.',
-      '"I hid the corn notebook. John can\'t',
-      'find it." He shoves a lamp in your hands',
-      'and vanishes into the dark.',
-    ],
+    name:'FIND THE CORN NOTEBOOK',
+    what:["Find Will's hidden recipe before time runs out."],
+    why:['Will secretly sweetened the corn flakes.','John would have fired him. This is history.'],
     howto:[
-      '1. Move mouse/finger to aim the lamp.',
-      '2. Search the kitchen for the notebook.',
-      '3. Click/tap it when the beam finds it.',
-      '4. You have 20 seconds.',
+      '1. Move the mouse/finger to aim the lamp.',
+      '2. The kitchen is nearly pitch dark.',
+      '3. Sweep the beam to find the notebook.',
+      '4. Click/tap it when found.',
     ],
+    towin:'Find the notebook in 20 seconds.',
     cta:'TAKE THE LAMP',
     col:C.YL,
   },
@@ -1481,39 +1469,48 @@ const SQ_INTRO={
 function skipSQ(){pendingSQ=null;sqType=null;sqElectricHolding=false;continueAfterSQ();}
 function drawSQIntro(){
   const d=SQ_INTRO[sqType];
-  box(0,0,W,H,'#000022');
-  // Header
-  box(0,0,W,isMobile?42:32,'#001133');
-  TC('** SIDE QUEST **',isMobile?4:4,C.CY,isMobile?8:7);
-  TC(d.title,isMobile?18:14,d.col,isMobile?10:9);
-  hln(isMobile?42:32,C.CY);
-  // Narrative
-  let ty=isMobile?52:42;
-  for(const ln of d.lines){
-    T(ln,10,ty,C.WH,isMobile?9:8);
-    ty+=isMobile?16:13;
-  }
-  // How to play
-  ty+=isMobile?8:6;
-  hln(ty,'#223322');
-  ty+=isMobile?8:6;
-  T('HOW TO PLAY:',10,ty,C.YL,isMobile?9:8);
-  ty+=isMobile?16:14;
-  for(const ln of d.howto){
-    T(ln,10,ty,C.CY,isMobile?8:7);
-    ty+=isMobile?14:12;
-  }
-  // CTA button
-  const btnW=isMobile?200:180,btnH=isMobile?38:28;
-  const btnX=(W-btnW)/2,btnY=H-btnH*2-28;
+  const lh=isMobile?14:12; // line height
+  const bef=isMobile?6:4;  // gap after divider, before label
+  const sg=isMobile?4:2;   // gap after section content
+  box(0,0,W,H,'#000011');
+  // ── Header ──────────────────────────────────────
+  const hdrH=isMobile?44:34;
+  box(0,0,W,hdrH,'#001133');
+  TC('★  SIDE QUEST  ★',isMobile?5:4,C.CY,isMobile?8:7);
+  TC(d.title,isMobile?20:15,d.col,isMobile?10:9);
+  hln(hdrH,d.col);
+  // ── Game name (big) ─────────────────────────────
+  TC(d.name,hdrH+(isMobile?10:6),d.col,isMobile?13:11);
+  let ty=hdrH+(isMobile?30:22);
+  // ── WHAT IT IS ──────────────────────────────────
+  hln(ty,'#222233');ty+=bef;
+  T('WHAT IT IS:',10,ty,C.YL,isMobile?8:7);ty+=lh;
+  for(const ln of d.what){T(ln,10,ty,C.WH,isMobile?9:8);ty+=lh;}
+  ty+=sg;
+  // ── WHY IT MATTERS ──────────────────────────────
+  hln(ty,'#222233');ty+=bef;
+  T('WHY IT MATTERS:',10,ty,C.YL,isMobile?8:7);ty+=lh;
+  for(const ln of d.why){T(ln,10,ty,C.LG,isMobile?9:8);ty+=lh;}
+  ty+=sg;
+  // ── HOW TO PLAY ─────────────────────────────────
+  hln(ty,'#222233');ty+=bef;
+  T('HOW TO PLAY:',10,ty,C.YL,isMobile?8:7);ty+=lh;
+  for(const ln of d.howto){T(ln,10,ty,C.CY,isMobile?9:8);ty+=lh;}
+  ty+=sg;
+  // ── TO WIN ──────────────────────────────────────
+  hln(ty,'#222233');ty+=bef;
+  T('TO WIN:',10,ty,C.YL,isMobile?8:7);ty+=lh;
+  T(d.towin,10,ty,C.GR,isMobile?9:8);
+  // ── Buttons ─────────────────────────────────────
+  const btnW=isMobile?200:180,btnH=isMobile?40:30;
+  const btnX=(W-btnW)/2,btnY=H-btnH*2-32;
   const hov=mouseY>=btnY&&mouseY<=btnY+btnH&&mouseX>=btnX&&mouseX<=btnX+btnW;
   dbox(btnX,btnY,btnW,btnH,'#002200',hov?C.YL:C.GR);
-  TC('[ '+d.cta+' ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?10:9);
-  // Skip button
-  const skY=btnY+btnH+8;
-  const hovSk=mouseY>=skY&&mouseY<=skY+btnH-8&&mouseX>=btnX+30&&mouseX<=btnX+btnW-30;
-  dbox(btnX+30,skY,btnW-60,btnH-8,'#110011',hovSk?C.RD:C.DK);
-  TC('[ no thanks ]',skY+(btnH-18)/2,hovSk?C.RD:C.DK,isMobile?8:7);
+  TC('[ '+d.cta+' ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?11:10);
+  const skY=btnY+btnH+10;
+  const hovSk=mouseY>=skY&&mouseY<=skY+24&&mouseX>=btnX+30&&mouseX<=btnX+btnW-30;
+  dbox(btnX+30,skY,btnW-60,24,'#110011',hovSk?C.RD:C.DK);
+  TC('[ no thanks ]',skY+7,hovSk?C.RD:C.DK,isMobile?8:7);
 }
 
 // ─── VINGT-ET-UN ───────────────────────────────────────────────
@@ -2444,11 +2441,11 @@ function handleClick(){
   }
   // Side quest states
   if(state==='sq_intro'){
-    const btnH=isMobile?38:28,btnW=isMobile?200:180;
-    const btnX=(W-btnW)/2,btnY=H-btnH*2-28;
+    const btnH=isMobile?40:30,btnW=isMobile?200:180;
+    const btnX=(W-btnW)/2,btnY=H-btnH*2-32;
     if(mouseY>=btnY&&mouseY<=btnY+btnH&&mouseX>=btnX&&mouseX<=btnX+btnW){state='sq_'+sqType;return;}
-    const skY=btnY+btnH+8;
-    if(mouseY>=skY&&mouseY<=skY+btnH-8&&mouseX>=btnX+30&&mouseX<=btnX+btnW-30){skipSQ();return;}
+    const skY=btnY+btnH+10;
+    if(mouseY>=skY&&mouseY<=skY+24&&mouseX>=btnX+30&&mouseX<=btnX+btnW-30){skipSQ();return;}
   }
   if(state==='sq_vingtun'){
     const btnH=isMobile?36:26,gap=8,bw=(W-24-gap)/2;
