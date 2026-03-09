@@ -1802,18 +1802,31 @@ function drawSQBaseball(){
 
     // ── Pitch type buttons (LEFT column) ──
     const types=['FASTBALL','CURVEBALL','LOB'];
-    const descs=['Blazes in. Hard to hit','Breaks late. Unpredictable','Floats in. Easy to time'];
-    const bW=isMobile?70:66,bH=isMobile?32:24;
-    const bX=4;
-    const bStartY=zr.y+(zr.h-3*bH-8)/2;
+    const descs=['Power. Straight.','Breaks sideways.','Slow & floaty.'];
+    const bW=isMobile?92:88,bH=isMobile?44:36;
+    const bX=2;
+    const bStartY=zr.y+(zr.h-3*bH-10)/2;
+    T('PITCH TYPE:',bX+2,bStartY-13,C.CY,isMobile?8:7);
     for(let i=0;i<3;i++){
-      const by=bStartY+i*(bH+4);
+      const by=bStartY+i*(bH+5);
       const sel=d.pitchType===i;
       const hov=mouseY>=by&&mouseY<=by+bH&&mouseX>=bX&&mouseX<=bX+bW;
-      dbox(bX,by,bW,bH,sel?'#002200':'#001100',sel?C.YL:hov?C.CY:C.DK);
-      T(types[i],bX+4,by+(bH-8)/2,sel?C.YL:hov?C.CY:C.LG,isMobile?7:6);
+      dbox(bX,by,bW,bH,sel?'#003300':'#001100',sel?C.YL:hov?C.CY:'#444444');
+      T(types[i],bX+6,by+6,sel?C.YL:hov?C.CY:C.WH,isMobile?9:8);
+      T(descs[i],bX+6,by+bH-14,sel?C.GR:C.DK,isMobile?7:6);
     }
-    T('PITCH TYPE:',bX,bStartY-12,C.CY,isMobile?7:6);
+    // Zone row labels (H/M/L) between buttons and zone
+    const lblX=bX+bW+4;
+    const rowLabels=['H','M','L'];
+    for(let r=0;r<3;r++){
+      T(rowLabels[r],lblX,zr.y+r*zr.csz+(zr.csz-8)/2,C.DK,isMobile?7:6);
+    }
+    // Zone column labels (IN/C/OUT)
+    const colLabels=['IN','C','OUT'];
+    for(let c=0;c<3;c++){
+      TC(colLabels[c],zr.y-11,C.DK,isMobile?6:5);
+      T(colLabels[c],zr.x+c*zr.csz+(zr.csz/2)-6,zr.y-11,C.DK,isMobile?6:5);
+    }
 
     // ── PITCH! button (bottom center) ──
     if(d.pitchType!==null&&d.pitchZone!==null&&d.phase==='pitch_select'){
@@ -2425,10 +2438,10 @@ function handleClick(){
     const d=sqData;
     if(d.phase==='pitch_select'){
       const zr=bbZoneRect();
-      // Pitch type buttons (left column, bX=4)
-      const bW=isMobile?70:66,bH=isMobile?32:24;
-      const bX=4;
-      const bStartY=zr.y+(zr.h-3*bH-8)/2;
+      // Pitch type buttons (left column, bX=2)
+      const bW=isMobile?92:88,bH=isMobile?44:36;
+      const bX=2;
+      const bStartY=zr.y+(zr.h-3*bH-10)/2;
       for(let i=0;i<3;i++){
         const by=bStartY+i*(bH+4);
         if(mouseY>=by&&mouseY<=by+bH&&mouseX>=bX&&mouseX<=bX+bW){sqBaseballSelectPitch(i);return;}
