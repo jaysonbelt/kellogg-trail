@@ -87,7 +87,7 @@ function wrap(str,maxW,sz=8){
 const C={
   BK:'#000000',WH:'#ffffff',CY:'#55ffff',GR:'#55ff55',YL:'#ffff55',
   RD:'#ff5555',MG:'#ff55ff',BL:'#5555ff',
-  DK:'#555555',LG:'#aaaaaa',
+  DK:'#888888',LG:'#cccccc',
   DBLU:'#0000aa',DGRE:'#005500',DCYA:'#005555',
   DRED:'#aa0000',DYEL:'#aa5500',DMAG:'#aa00aa',
   SKY:'#0000aa',GND:'#005500',DIRT:'#aa5500',
@@ -927,7 +927,9 @@ function drawBadSprite(x,y){
   // Cross
   box(x+48,y+18,8,30,'#888888');box(x+36,y+26,28,8,'#888888');
   // RIP
-  T('R.I.P.',x+34,y+38,C.WH,7);T('SANITY',x+31,y+50,C.LG,6);T('1894',x+38,y+60,'#aaaaaa',6);
+  cx.font='7px "Courier New",monospace';cx.fillStyle='#ffffff';cx.textBaseline='top';cx.textAlign='center';
+  cx.fillText('R.I.P.',x+52,y+50);cx.fillText('YOUR SANITY',x+52,y+59);
+  cx.font='6px "Courier New",monospace';cx.fillText('1894',x+52,y+69);cx.textAlign='left';
   // Dirt mound
   cx.fillStyle='#774422';cx.beginPath();cx.ellipse(x+52,y+82,50,12,0,0,Math.PI*2);cx.fill();
   box(x+2,y+78,100,12,'#774422');
@@ -1470,7 +1472,7 @@ function drawEventBox(ev,hoverChoice){
     if(ev.fact){
       hln(ty+1,'#553300');
       const fl=wrap(ev.fact,W-16,7);
-      fl.forEach(l=>{T(l,8,ty+4,C.DYEL,7);ty+=12;});
+      fl.forEach(l=>{T(l,8,ty+4,'#ddbb44',7);ty+=12;});
       ty+=8;
     }
     hln(ty+2,'#003344');ty+=10;
@@ -1493,7 +1495,7 @@ function drawEventBox(ev,hoverChoice){
     });
     if(ev.fact){
       hln(ty+1,'#553300');
-      T(ev.fact,8,ty+4,C.DYEL,6);ty+=14;
+      T(ev.fact,8,ty+4,'#ddbb44',7);ty+=15;
     }
     hln(ty+2,'#003344');ty+=7;
     ev.choices.forEach((ch,i)=>{
