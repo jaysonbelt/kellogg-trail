@@ -1405,16 +1405,18 @@ const SQ_INTRO={
   baseball:{
     title:'HENRY FORD CHALLENGES YOU',
     name:'BASEBALL',
-    what:["Pitcher vs. batter. America's game, 1894."],
-    why:['Ford plays for the sanitarium guest team','on Thursdays. He is deadly serious about it.'],
+    what:["Ford plays for the sanitarium staff team.",
+          "He is 31. He takes baseball very seriously.",
+          "You are pitching. He is at bat."],
+    why:['Ford and Kellogg move in the same','wealthy circles. A win earns respect.','A loss earns an enema.'],
     howto:[
       '1. Pick a PITCH TYPE on the left.',
-      '2. Click a ZONE on the grid to aim.',
-      '3. Hit PITCH! — try to get the out.',
-      '4. If they miss: step up to bat.',
-      '5. Click/tap when the ball enters the zone.',
+      '2. Click a ZONE on the grid to aim your pitch.',
+      '3. Hit PITCH! to throw.',
+      '4. STRIKE FORD OUT to earn your at-bat.',
+      '5. Ball comes — click when it hits the zone.',
     ],
-    towin:'Get the batter out. Then hit a home run.',
+    towin:'Strike Ford out. Then step up and hit a home run.',
     cta:'PLAY BALL',
     col:C.YL,
   },
@@ -1821,11 +1823,22 @@ function drawSQBaseball(){
     box(batX,batY,8,24,'#2a1510');      // body
     box(batX+4,batY-8,8,8,'#ffaa55');   // head
     box(batX-14,batY+6,16,4,'#8a5522'); // bat
-    T('NPC',batX-2,batY+26,C.LG,isMobile?6:6);
+    T('FORD',batX-4,batY+26,C.YL,isMobile?7:7);
     // Pitcher mound bottom-center of zone
     const mX=~~(W/2),mY=zr.y+zr.h+18;
     cx.fillStyle='#ccaa66';cx.beginPath();cx.ellipse(mX,mY,12,6,0,0,Math.PI*2);cx.fill();
-    T('P',mX-3,mY-5,C.WH,isMobile?7:6);
+    T('YOU',mX-8,mY-5,C.GR,isMobile?7:6);
+    // ── Stakes column (right of batter) ──
+    const rkX=zr.x+zr.w+(isMobile?34:66);
+    T('FORD',rkX,zr.y+4,C.YL,isMobile?8:8);
+    T(isMobile?'at bat':'is at bat.',rkX,zr.y+18,C.LG,isMobile?7:7);
+    T('He looks',rkX,zr.y+36,C.DK,isMobile?7:6);
+    T('confident.',rkX,zr.y+50,C.DK,isMobile?7:6);
+    box(rkX,zr.y+64,isMobile?44:52,1,'#224422');
+    T('STRIKE',rkX,zr.y+72,C.CY,isMobile?8:8);
+    T('HIM OUT',rkX,zr.y+86,C.CY,isMobile?8:8);
+    T('to earn',rkX,zr.y+102,C.WH,isMobile?7:7);
+    T('your at-bat.',rkX,zr.y+(isMobile?116:118),C.WH,isMobile?7:7);
 
     // ── Pitch type buttons (LEFT column) ──
     const types=['FASTBALL','CURVEBALL','LOB'];
@@ -1891,18 +1904,31 @@ function drawSQBaseball(){
     }
 
   } else if(d.phase==='bat_ready'){
-    // Pause screen before batting
-    box(0,isMobile?H/2-60:H/2-50,W,isMobile?120:100,'#001100');
-    hln(isMobile?H/2-60:H/2-50,C.YL);hln(isMobile?H/2+60:H/2+50,C.YL);
-    TC('YOUR TURN AT BAT',isMobile?H/2-44:H/2-38,C.YL,isMobile?12:11);
-    TC('The pitcher winds up.',isMobile?H/2-22:H/2-20,C.WH,isMobile?9:8);
-    TC('Click or tap when the ball',isMobile?H/2-6:H/2-5,C.CY,isMobile?9:8);
-    TC('reaches the STRIKE ZONE!',isMobile?H/2+10:H/2+9,C.CY,isMobile?9:8);
-    const btnH=isMobile?38:28,btnW=isMobile?170:150;
-    const btnY=isMobile?H/2+32:H/2+26,btnX2=(W-btnW)/2;
-    const hov=mouseY>=btnY&&mouseY<=btnY+btnH;
-    dbox(btnX2,btnY,btnW,btnH,'#002200',hov?C.YL:C.GR);
-    TC('[ READY! ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?11:10);
+    // Dramatic full-screen transition before batting
+    box(0,0,W,H,'#000a00');
+    const hdrH=isMobile?48:38;
+    box(0,0,W,hdrH,'#003300');
+    hln(hdrH,C.GR);
+    TC('OUT!',isMobile?8:6,C.GR,isMobile?14:13);
+    TC('You retired the batter.',isMobile?28:20,C.WH,isMobile?9:8);
+    const midY=isMobile?90:72;
+    TC('Ford uncrosses his arms. Just barely.',midY,C.LG,isMobile?9:8);
+    TC('"Hm," he says, writing nothing down.',midY+(isMobile?16:14),C.CY,isMobile?9:8);
+    hln(midY+(isMobile?34:30),'#224422');
+    const stY=midY+(isMobile?46:42);
+    TC('YOUR TURN AT BAT',stY,C.YL,isMobile?13:12);
+    TC('A HOME RUN wins.',stY+(isMobile?22:18),C.WH,isMobile?9:8);
+    TC('A strikeout — Ford leaves without a word.',stY+(isMobile?38:32),C.RD,isMobile?9:8);
+    TC('Henry Ford.',stY+(isMobile?54:46),C.RD,isMobile?8:7);
+    hln(stY+(isMobile?70:62),'#224422');
+    const batY2=stY+(isMobile?82:74);
+    TC('Ball comes straight at you.',batY2,C.CY,isMobile?9:8);
+    TC('Click or tap when it hits the zone.',batY2+(isMobile?16:14),C.CY,isMobile?8:7);
+    const btnH=isMobile?42:32,btnW=isMobile?200:180;
+    const btnY=H-btnH-(isMobile?20:16),btnX2=(W-btnW)/2;
+    const hov=mouseY>=btnY&&mouseY<=btnY+btnH&&mouseX>=btnX2&&mouseX<=btnX2+btnW;
+    dbox(btnX2,btnY,btnW,btnH,'#003300',hov?C.YL:C.GR);
+    TC('[ STEP UP TO BAT ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?11:10);
 
   } else if(d.phase==='bat_anim'||d.phase==='bat_result'){
     // Batting — catcher's view looking toward pitcher
@@ -2486,7 +2512,13 @@ function handleClick(){
       }
     }
     if(d.phase==='pitch_result'&&d.npcResult==='out'){sqBaseballStartBatting();return;}
-    if(d.phase==='bat_ready'||d.phase==='bat_anim'){sqBaseballSwing();return;}
+    if(d.phase==='bat_ready'){
+      const btnH=isMobile?42:32,btnW=isMobile?200:180;
+      const btnY=H-btnH-(isMobile?20:16),btnX2=(W-btnW)/2;
+      if(mouseY>=btnY&&mouseY<=btnY+btnH&&mouseX>=btnX2&&mouseX<=btnX2+btnW){sqBaseballSwing();return;}
+      return;
+    }
+    if(d.phase==='bat_anim'){sqBaseballSwing();return;}
   }
   if(state==='sq_flashlight'){sqFlashlightClick();return;}
   if(state==='sq_result'){
