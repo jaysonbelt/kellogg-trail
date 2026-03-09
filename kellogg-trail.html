@@ -1054,7 +1054,7 @@ const EVENTS=[
     ],
   },
   {
-    scene:'lecture',day:3,npc:'Kellogg',
+    scene:'lecture',day:3,npc:'Kellogg',sq:'baseball',
     header:'DAY 3  --  MANDATORY LECTURE',
     sub:'LECTURE HALL, THE SANITARIUM',
     lines:[
@@ -1121,7 +1121,7 @@ const EVENTS=[
     ],
   },
   {
-    scene:'lobby',day:6,npc:'Kellogg',
+    scene:'lobby',day:6,npc:'Kellogg',sq:'electric',
     header:'DAY 6  --  ELECTROTHERAPY',
     sub:'ELECTROTHERAPY LAB, THE SANITARIUM',
     lines:[
@@ -1213,7 +1213,7 @@ const EVENTS=[
     ],
   },
   {
-    scene:'sunroom',day:11,npc:'Post',
+    scene:'sunroom',day:11,npc:'Post',sq:'vingtun',
     header:'DAY 11  --  THE SUNROOM',
     sub:'SUNROOM, THE SANITARIUM',
     lines:[
@@ -1351,7 +1351,7 @@ const EVENTS=[
     ],
   },
   {
-    scene:'kitchen_night',day:21,npc:'Will',
+    scene:'kitchen_night',day:21,npc:'Will',sq:'flashlight',
     header:'DAY 21  --  CORN FLAKES',
     sub:'KITCHEN (NIGHT), THE SANITARIUM',
     lines:[
@@ -1374,6 +1374,604 @@ const EVENTS=[
     ],
   },
 ];
+
+// ═══════════════════════════════════════════════
+// SIDE QUEST ENGINE
+// ═══════════════════════════════════════════════
+
+// --- Init dispatcher ---
+function initSQ(type){
+  sqData={};sqResult=null;
+  if(type==='vingtun') initSQVingtun();
+  else if(type==='electric') initSQElectric();
+  else if(type==='baseball') initSQBaseball();
+  else if(type==='flashlight') initSQFlashlight();
+}
+
+// --- Finish: apply stats and go to sq_result ---
+function finishSQ(won,title,msg,changes){
+  for(const c of changes){
+    if(c.stat==='sanity') G.sanity=Math.max(0,Math.min(100,G.sanity+c.delta));
+    else if(c.stat==='approval') G.approval=Math.max(0,Math.min(5,G.approval+c.delta));
+    else if(c.stat==='enemas') G.enemas+=c.delta;
+    else if(c.stat==='bowel') G.bowel=Math.max(0,Math.min(4,G.bowel+c.delta));
+  }
+  sqResult={won,title,msg,statChanges:changes};
+  state='sq_result';
+}
+
+// ─── SQ INTRO ──────────────────────────────────────────────────
+const SQ_INTRO={
+  baseball:{
+    title:'HENRY FORD CHALLENGES YOU',
+    who:'Ford',
+    lines:[
+      'Ford stops you outside the lecture hall.',
+      '"You look like a man who\'s played ball."',
+      '"One game. One at-bat. Don\'t embarrass',
+      'yourself." He hands you a very clean ball.',
+      '',
+      'The sanitarium staff team assembles. Ford',
+      'stands near the fence with his arms crossed.',
+    ],
+    cta:'PLAY BALL',
+    col:C.YL,
+  },
+  electric:{
+    title:'THE BANKER\'S CHALLENGE',
+    who:'The Banker',
+    lines:[
+      'The banker from the electric cabinet waves.',
+      '"The electric parlor game. Five rounds.',
+      'Increasing voltage. Last man holding wins."',
+      'He hands you a copper electrode.',
+      'It smells of burnt wool.',
+    ],
+    cta:'GRAB THE ELECTRODE',
+    col:C.CY,
+  },
+  vingtun:{
+    title:'POST PRODUCES A DECK',
+    who:'C.W. Post',
+    lines:[
+      'Post leans over with a very clean deck.',
+      '"A friendly wager. Vingt-et-un.',
+      'Highest total under 21 wins."',
+      '"Unless you\'re afraid of a little',
+      'excitement." His eyes say he isn\'t.',
+    ],
+    cta:'DEAL THE CARDS',
+    col:C.GR,
+  },
+  flashlight:{
+    title:'WILL NEEDS YOUR HELP',
+    who:'Will Kellogg',
+    lines:[
+      'Will grabs your arm in the dark kitchen.',
+      '"I hid the corn notebook. John can\'t',
+      'find it. It\'s in the kitchen somewhere."',
+      '"He\'s coming. Grab the lamp and',
+      'FIND IT." He vanishes into the dark.',
+    ],
+    cta:'TAKE THE LAMP',
+    col:C.YL,
+  },
+};
+
+function drawSQIntro(){
+  const d=SQ_INTRO[sqType];
+  box(0,0,W,H,'#000022');
+  hln(0,C.CY);
+  // Header
+  box(0,0,W,isMobile?42:32,'#001133');
+  TC('** SIDE QUEST **',isMobile?4:4,C.CY,isMobile?8:7);
+  TC(d.title,isMobile?18:14,d.col,isMobile?10:9);
+  // Body
+  let ty=isMobile?52:42;
+  for(const ln of d.lines){
+    T(ln,10,ty,C.WH,isMobile?9:8);
+    ty+=isMobile?16:13;
+  }
+  // CTA button
+  const btnW=isMobile?200:180,btnH=isMobile?38:28;
+  const btnX=(W-btnW)/2,btnY=H-btnH-16;
+  const hov=mouseY>=btnY&&mouseY<=btnY+btnH;
+  dbox(btnX,btnY,btnW,btnH,'#002200',hov?C.YL:C.GR);
+  TC('[ '+d.cta+' ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?10:9);
+}
+
+// ─── VINGT-ET-UN ───────────────────────────────────────────────
+function shuffle52(){
+  const suits=['♠','♥','♦','♣'];
+  const faces=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  const vals= [ 2,  3,  4,  5,  6,  7,  8,  9,  10, 10, 10, 10, 11];
+  const d=[];
+  for(const s of suits)for(let i=0;i<13;i++)d.push({face:faces[i],val:vals[i],suit:s});
+  for(let i=d.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+function handVal(cards){
+  let v=cards.reduce((a,c)=>a+c.val,0);
+  const aces=cards.filter(c=>c.face==='A').length;
+  let soft=aces;
+  while(v>21&&soft>0){v-=10;soft--;}
+  return v;
+}
+function initSQVingtun(){
+  const deck=shuffle52();
+  const pc=[deck.pop(),deck.pop()];
+  const nc=[deck.pop(),deck.pop()];
+  sqData={deck,playerCards:pc,npcCards:nc,phase:'player',playerBust:false,npcBust:false,npcReveal:false};
+}
+function drawCard(x,y,card,faceDown){
+  const cw=isMobile?22:18,ch=isMobile?32:26;
+  box(x,y,cw,ch,'#fffef0');
+  cx.strokeStyle='#888866';cx.lineWidth=1;cx.strokeRect(x+0.5,y+0.5,cw-1,ch-1);
+  if(faceDown){
+    box(x+2,y+2,cw-4,ch-4,'#1a3a6a');
+    // cross-hatch
+    for(let i=0;i<4;i++){cx.fillStyle='#0a2a5a';cx.fillRect(x+2+i*4,y+2,2,ch-4);}
+    return;
+  }
+  const red=card.suit==='♥'||card.suit==='♦';
+  cx.fillStyle=red?'#cc2222':'#111111';
+  cx.font=(isMobile?7:6)+'px "Courier New",monospace';
+  cx.textBaseline='top';cx.textAlign='left';
+  cx.fillText(card.face,x+2,y+2);
+  cx.font=(isMobile?8:7)+'px "Courier New",monospace';
+  cx.textAlign='center';
+  cx.fillText(card.suit,x+cw/2,y+ch/2-4);
+}
+function drawSQVingtun(){
+  const d=sqData;
+  box(0,0,W,H,'#004400');
+  // felt texture lines
+  for(let i=0;i<H;i+=8){cx.fillStyle=i%16===0?'#005500':'#003300';cx.fillRect(0,i,W,4);}
+  // Title bar
+  box(0,0,W,isMobile?28:22,'#001100');
+  TC('VINGT-ET-UN  vs  C.W. POST',isMobile?6:4,C.YL,isMobile?9:8);
+  // Post's cards (top)
+  const cw=isMobile?22:18,ch=isMobile?32:26;
+  const postY=isMobile?38:32;
+  T('POST:',8,postY,C.YL,isMobile?9:8);
+  for(let i=0;i<d.npcCards.length;i++){
+    drawCard(8+i*(cw+3),postY+12,d.npcCards[i],!d.npcReveal&&i===1&&d.phase==='player');
+  }
+  if(d.npcReveal){
+    const nv=handVal(d.npcCards);
+    T((d.npcBust?'BUST! ':'')+'= '+nv,8+d.npcCards.length*(cw+3)+4,postY+12,d.npcBust?C.RD:C.WH,isMobile?9:8);
+  }
+  // Player's cards (middle)
+  const plY=isMobile?H-180:H-140;
+  T('YOU:',8,plY,C.GR,isMobile?9:8);
+  for(let i=0;i<d.playerCards.length;i++){
+    drawCard(8+i*(cw+3),plY+12,d.playerCards[i],false);
+  }
+  const pv=handVal(d.playerCards);
+  const pvCol=pv>21?C.RD:pv>=18?C.GR:C.WH;
+  T((d.playerBust?'BUST! ':'')+'= '+pv,8+d.playerCards.length*(cw+3)+4,plY+12,pvCol,isMobile?9:8);
+  // Buttons / status
+  if(d.phase==='player'){
+    const btnH=isMobile?36:26,gap=8;
+    const bw=(W-24-gap)/2;
+    const by=H-btnH-10;
+    const hH=mouseY>=by&&mouseY<=by+btnH&&mouseX<=(W/2-gap/2);
+    const hS=mouseY>=by&&mouseY<=by+btnH&&mouseX>=(W/2+gap/2);
+    dbox(8,by,bw,btnH,'#002200',hH?C.YL:C.GR);
+    TC('[ HIT ]',(by+(btnH-10)/2)+0,hH?C.YL:C.GR,isMobile?10:9);
+    // offset center for right button
+    const rx=W/2+gap/2;
+    dbox(rx,by,bw,btnH,'#002200',hS?C.YL:C.CY);
+    cx.font=(isMobile?10:9)+'px "Courier New",monospace';cx.textBaseline='top';cx.textAlign='center';
+    cx.fillStyle=hS?C.YL:C.CY;cx.fillText('[ STAND ]',rx+bw/2,by+(btnH-10)/2);
+  } else if(d.phase==='npc'){
+    TC('Post is playing...',H-30,C.YL,isMobile?9:8);
+  }
+}
+function sqVingtunHit(){
+  if(sqData.phase!=='player')return;
+  sqData.playerCards.push(sqData.deck.pop());
+  const pv=handVal(sqData.playerCards);
+  if(pv>21){sqData.playerBust=true;sqVingtunResolve();}
+}
+function sqVingtunStand(){
+  if(sqData.phase!=='player')return;
+  sqData.phase='npc';sqData.npcReveal=true;
+  // NPC plays: stand at 17+
+  while(handVal(sqData.npcCards)<17)sqData.npcCards.push(sqData.deck.pop());
+  const nv=handVal(sqData.npcCards);
+  if(nv>21)sqData.npcBust=true;
+  sqVingtunResolve();
+}
+function sqVingtunResolve(){
+  sqData.phase='result';sqData.npcReveal=true;
+  const pv=handVal(sqData.playerCards),nv=handVal(sqData.npcCards);
+  const won=!sqData.playerBust&&(sqData.npcBust||pv>nv);
+  const msg=won?'Post looks annoyed. He writes nothing down. For once.':'Post wins and immediately takes a very detailed note.';
+  const changes=won?[{stat:'sanity',delta:5,label:'SANITY'},{stat:'approval',delta:1,label:'KELLOGG'}]
+                   :[{stat:'sanity',delta:-5,label:'SANITY'}];
+  finishSQ(won,won?'YOU WIN!':'POST WINS',msg,changes);
+}
+
+// ─── ELECTRIC SHOCK ────────────────────────────────────────────
+const ELECTRIC_TIMES=[3000,2500,2000,1500,1000];
+function initSQElectric(){
+  sqData={round:1,phase:'waiting',timer:0,maxTimer:0,bankerFailed:false,waitT:Date.now()+1200};
+}
+function drawSQElectric(){
+  const d=sqData;
+  const t=Date.now();
+  // Background flash during jolt
+  const jolting=(d.phase==='countdown');
+  const flash=jolting?(Math.sin(t/60)*0.5+0.5)*0.4:0;
+  box(0,0,W,H,`rgba(255,255,180,${flash})`);
+  box(0,0,W,H,'#000822');
+  // Title
+  box(0,0,W,isMobile?28:22,'#000011');
+  TC('ELECTRIC SHOCK PARLOR  --  ROUND '+d.round+'/5',isMobile?6:4,C.YL,isMobile?9:8);
+  // Characters
+  const gy=isMobile?160:120;
+  drawPatient(isMobile?40:60,gy,walkF*0.3);
+  // Banker (simple dark-suit figure)
+  drawDoctor(isMobile?W-80:W-100,gy,walkF*0.3);
+  T('YOU',isMobile?48:68,gy+22,C.GR,isMobile?8:7);
+  T('BANKER',isMobile?W-76:W-96,gy+22,C.YL,isMobile?8:7);
+  // Voltage meter
+  const mX=W-36,mY=isMobile?50:38;
+  box(mX,mY,22,90,'#001122');
+  cx.strokeStyle=C.CY;cx.lineWidth=1;cx.strokeRect(mX+0.5,mY+0.5,21,89);
+  T('V',mX+7,mY+2,C.CY,7);
+  for(let i=0;i<5;i++){
+    const fy=mY+80-i*14;
+    const lit=i<d.round;
+    const col=i<2?C.GR:i<4?C.YL:C.RD;
+    box(mX+3,fy,16,10,lit?col:'#001122');
+    if(lit){cx.strokeStyle=col;cx.lineWidth=1;cx.strokeRect(mX+3,fy,16,10);}
+  }
+  // Electric arc between characters
+  if(jolting||d.phase==='countdown'){
+    const x1=isMobile?80:110,x2=isMobile?W-70:W-90;
+    const arcY=gy-10;
+    const seg=10;
+    cx.strokeStyle=`rgba(255,255,150,${0.6+Math.sin(t/25)*0.4})`;
+    cx.lineWidth=2;cx.beginPath();
+    cx.moveTo(x1,arcY);
+    for(let x=x1+seg;x<x2;x+=seg){
+      cx.lineTo(x,arcY+(Math.random()-0.5)*16);
+    }
+    cx.lineTo(x2,arcY);cx.stroke();
+    cx.strokeStyle=`rgba(255,255,255,${0.3+Math.sin(t/15)*0.3})`;
+    cx.lineWidth=1;cx.beginPath();cx.moveTo(x1,arcY);
+    for(let x=x1+seg;x<x2;x+=seg){cx.lineTo(x,arcY+(Math.random()-0.5)*20);}
+    cx.lineTo(x2,arcY);cx.stroke();
+  }
+  // Countdown bar
+  if(d.phase==='countdown'&&d.maxTimer>0){
+    const barW=W-32,barH=isMobile?12:10,barY=isMobile?H-100:H-80;
+    const frac=Math.max(0,d.timer/d.maxTimer);
+    box(16,barY,barW,barH,'#001100');
+    box(16,barY,~~(barW*frac),barH,frac>0.5?C.GR:frac>0.25?C.YL:C.RD);
+    cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(16,barY,barW,barH);
+    TC('HOLD ON OR LET GO!',barY-14,C.CY,isMobile?8:7);
+  }
+  // Button
+  if(d.phase==='waiting'){
+    TC('Round '+d.round+' begins...',H-50,C.LG,isMobile?9:8);
+  } else if(d.phase==='countdown'){
+    const btnH=isMobile?40:30;
+    const by=H-btnH-8;
+    const hov=mouseY>=by&&mouseY<=by+btnH;
+    dbox(W/2-70,by,140,btnH,'#001100',hov?C.YL:C.CY);
+    TC('[ HOLD ON! ]',by+(btnH-10)/2,hov?C.YL:C.CY,isMobile?10:9);
+  }
+}
+function sqElectricTick(dt){
+  const d=sqData;
+  if(d.phase==='waiting'){
+    if(Date.now()>=d.waitT){
+      d.phase='countdown';
+      d.maxTimer=ELECTRIC_TIMES[d.round-1];
+      d.timer=d.maxTimer;
+      d.startT=Date.now();
+    }
+    return;
+  }
+  if(d.phase==='countdown'){
+    d.timer=d.maxTimer-(Date.now()-d.startT);
+    if(d.timer<=0){
+      // Player failed to hold on — lose
+      finishSQ(false,'YOU LET GO','Dr. Kellogg administers a restorative enema. "Electricity builds character," he says.',
+        [{stat:'sanity',delta:-5,label:'SANITY'},{stat:'enemas',delta:1,label:'ENEMAS'}]);
+    }
+  }
+}
+function sqElectricHold(){
+  // Player clicked HOLD ON — survive this round
+  const d=sqData;
+  if(d.phase!=='countdown')return;
+  // Check if banker fails on rounds 4-5
+  let bankerFails=false;
+  if(d.round>=4)bankerFails=Math.random()<0.5;
+  if(bankerFails){
+    // Banker drops out — player wins
+    finishSQ(true,'YOU WIN!','Ford, who was watching from the doorway, nods once.',
+      [{stat:'sanity',delta:5,label:'SANITY'},{stat:'approval',delta:1,label:'KELLOGG'}]);
+    return;
+  }
+  d.round++;
+  if(d.round>5){
+    // Survived all 5 — player wins (banker lasts all 5 too, but player wins by endurance)
+    finishSQ(true,'ENDURANCE CHAMPION','Ford nods. "Impressive." It is the highest praise you will receive all month.',
+      [{stat:'sanity',delta:5,label:'SANITY'},{stat:'approval',delta:1,label:'KELLOGG'}]);
+    return;
+  }
+  d.phase='waiting';
+  d.waitT=Date.now()+1000;
+}
+
+// ─── BASEBALL ──────────────────────────────────────────────────
+function initSQBaseball(){
+  sqData={phase:'pitch_select',pitchType:null,pitchZone:null,ballX:0,ballY:0,ballT:0,
+          npcResult:null,batResult:null,swingWindow:false,swingDone:false,
+          pitchStartT:0,animT:0,pitchMsg:''};
+}
+function drawBaseDiamond(cx2,cy,sz){
+  // Draw overhead baseball diamond
+  cx.strokeStyle='#886644';cx.lineWidth=1;
+  cx.beginPath();
+  cx.moveTo(cx2,cy-sz);cx.lineTo(cx2+sz,cy);
+  cx.lineTo(cx2,cy+sz);cx.lineTo(cx2-sz,cy);
+  cx.closePath();cx.stroke();
+  // bases
+  const bs=sz*0.15;
+  [[cx2,cy-sz],[cx2+sz,cy],[cx2,cy+sz],[cx2-sz,cy]].forEach(([bx,by])=>{
+    box(bx-bs,by-bs,bs*2,bs*2,'#ccaa66');
+  });
+}
+const PITCH_ZONES=[
+  [0,0],[1,0],[2,0],
+  [0,1],[1,1],[2,1],
+  [0,2],[1,2],[2,2],
+];
+function drawSQBaseball(){
+  const d=sqData;
+  box(0,0,W,H,'#005500');
+  // Outfield
+  box(0,0,W,H/2,'#006600');
+  // Infield dirt
+  box(W/2-80,H/4,160,H/2,'#aa7744');
+  box(0,0,W,isMobile?28:22,'#001100');
+  TC('BASEBALL  --  BATTLE CREEK SANITARIUM',isMobile?6:4,C.YL,isMobile?9:8);
+  if(d.phase==='pitch_select'||d.phase==='pitch_anim'||d.phase==='pitch_result'){
+    // Diamond overhead view
+    drawBaseDiamond(W/2,isMobile?100:80,isMobile?50:40);
+    // Pitcher mound
+    box(W/2-4,isMobile?95:76,8,8,'#ccaa66');
+    T('P',W/2-3,isMobile?93:74,C.WH,7);
+    // NPC batter at home plate
+    const bx=W/2-4,by=isMobile?140:115;
+    box(bx,by,8,10,'#2a1510');
+    T('NPC',bx-4,by-10,C.LG,6);
+    // Zone grid
+    const gx=isMobile?W/2-54:W/2-45;
+    const gy2=isMobile?170:135;
+    const csz=isMobile?36:30;
+    T('AIM ZONE:',gx,gy2-14,C.CY,isMobile?8:7);
+    for(let i=0;i<9;i++){
+      const col=i%3,row=~~(i/3);
+      const zx=gx+col*csz,zy=gy2+row*csz;
+      const sel=d.pitchZone===i;
+      box(zx,zy,csz-2,csz-2,sel?'#003300':'#002200');
+      cx.strokeStyle=sel?C.YL:C.DK;cx.lineWidth=1;cx.strokeRect(zx+0.5,zy+0.5,csz-3,csz-3);
+      if(sel){box(zx+4,zy+4,csz-10,csz-10,C.YL);}
+    }
+    // Pitch type buttons
+    const types=['FAST','CURVE','LOB'];
+    const bW=isMobile?88:72,bH=isMobile?28:22;
+    const bY=isMobile?gy2+3*csz+8:gy2+3*csz+6;
+    for(let i=0;i<3;i++){
+      const bx2=8+i*(bW+4);
+      const sel=d.pitchType===i;
+      const hov=mouseY>=bY&&mouseY<=bY+bH&&mouseX>=bx2&&mouseX<=bx2+bW;
+      dbox(bx2,bY,bW,bH,sel?'#002200':'#001100',sel?C.YL:hov?C.CY:C.DK);
+      cx.font=(isMobile?8:7)+'px "Courier New",monospace';cx.textBaseline='top';cx.textAlign='center';
+      cx.fillStyle=sel?C.YL:hov?C.CY:C.LG;
+      cx.fillText(types[i],bx2+bW/2,bY+(bH-8)/2);
+    }
+    // Pitch button
+    if(d.pitchType!==null&&d.pitchZone!==null&&d.phase==='pitch_select'){
+      const pbH=isMobile?34:26,pbW=isMobile?120:100;
+      const pbY=H-pbH-8,pbX=(W-pbW)/2;
+      const hov=mouseY>=pbY&&mouseY<=pbY+pbH&&mouseX>=pbX&&mouseX<=pbX+pbW;
+      dbox(pbX,pbY,pbW,pbH,'#002200',hov?C.YL:C.GR);
+      TC('[ PITCH! ]',pbY+(pbH-10)/2,hov?C.YL:C.GR,isMobile?10:9);
+    }
+    if(d.phase==='pitch_anim'){
+      // Animate ball from mound toward zone
+      const frac=Math.min(1,(Date.now()-d.pitchStartT)/700);
+      const startX=W/2,startY=isMobile?100:80;
+      const col=d.pitchZone%3,row=~~(d.pitchZone/3);
+      const gx2=isMobile?W/2-54:W/2-45;
+      const gy3=isMobile?170:135;
+      const csz=isMobile?36:30;
+      const endX=gx2+col*csz+csz/2,endY=gy3+row*csz+csz/2;
+      const bx3=startX+(endX-startX)*frac,by3=startY+(endY-startY)*frac;
+      box(bx3-4,by3-4,8,8,'#dddddd');
+      cx.strokeStyle=C.WH;cx.lineWidth=1;cx.beginPath();cx.arc(bx3,by3,4,0,Math.PI*2);cx.stroke();
+      if(frac>=1)sqBaseballResolvePitch();
+    }
+    if(d.phase==='pitch_result'){
+      const col=d.npcResult==='out'?C.GR:C.RD;
+      TC(d.npcResult==='out'?'OUT! NOW BATTING...':'HIT! THEY GOT IT.',H-50,col,isMobile?10:9);
+      if(d.npcResult==='out')TC('Click to continue.',H-30,C.LG,isMobile?8:7);
+    }
+  } else if(d.phase==='bat_wait'||d.phase==='bat_anim'||d.phase==='bat_result'){
+    // Batting view — catcher's perspective
+    // Plate
+    box(W/2-20,H-60,40,20,'#ccaa66');
+    cx.strokeStyle='#886644';cx.lineWidth=1;cx.strokeRect(W/2-20,H-60,40,20);
+    T('PLATE',W/2-16,H-56,C.DK,6);
+    // Player (batter)
+    drawPatient(W/2-20,H-80,walkF*0.1);
+    TC('TAP TO SWING!',H/2,C.CY,isMobile?11:9);
+    if(d.phase==='bat_anim'){
+      // Ball travels from top center down
+      const frac=Math.min(1,(Date.now()-d.batStartT)/1200);
+      const bx=W/2+(Math.random()-0.5)*2,by=30+frac*(H-100);
+      const sz=3+frac*5; // grows as it approaches
+      box(bx-sz/2,by-sz/2,sz,sz,'#dddddd');
+      cx.strokeStyle=C.WH;cx.beginPath();cx.arc(bx,by,sz/2+1,0,Math.PI*2);cx.stroke();
+      // Zone is H-100 to H-60
+      d.swingWindow=(by>=H-110&&by<=H-60);
+      if(frac>=1&&!d.swingDone)sqBaseballStrikeout();
+    }
+    if(d.phase==='bat_result'){
+      const col=d.batResult==='homer'?C.YL:C.RD;
+      const msg=d.batResult==='homer'?'HOME RUN!!':d.batResult==='strike'?'STRIKE OUT!':'SWUNG WRONG!';
+      TC(msg,H/2-20,col,isMobile?14:12);
+    }
+  }
+}
+function sqBaseballSelectPitch(type){sqData.pitchType=type;}
+function sqBaseballSelectZone(zone){sqData.pitchZone=zone;}
+function sqBaseballPitch(){
+  if(sqData.phase!=='pitch_select'||sqData.pitchType===null||sqData.pitchZone===null)return;
+  sqData.phase='pitch_anim';sqData.pitchStartT=Date.now();
+}
+function sqBaseballResolvePitch(){
+  const d=sqData;
+  // Hit probability table
+  const center=d.pitchZone===4;
+  const probs=[[0.60,0.25],[0.35,0.40],[0.55,0.60]]; // [fastball,curve,lob][center,corner]
+  const pr=probs[d.pitchType][center?0:1];
+  d.npcResult=Math.random()<pr?'hit':'out';
+  d.phase='pitch_result';
+  if(d.npcResult==='hit'){
+    finishSQ(false,'THEY HIT IT','The sanitarium team wins. Dr. Kellogg prescribes an enema for the loss.',
+      [{stat:'enemas',delta:1,label:'ENEMAS'}]);
+  }
+}
+function sqBaseballStartBatting(){
+  if(sqData.phase!=='pitch_result'||sqData.npcResult!=='out')return;
+  sqData.phase='bat_anim';sqData.batStartT=Date.now();sqData.swingDone=false;
+}
+function sqBaseballSwing(){
+  const d=sqData;
+  if(d.phase!=='bat_anim'||d.swingDone)return;
+  d.swingDone=true;
+  if(d.swingWindow){
+    d.batResult='homer';d.phase='bat_result';
+    finishSQ(true,'HOME RUN!!','Ford uncrosses his arms briefly. A small nod. That\'s all. That\'s enough.',
+      [{stat:'sanity',delta:10,label:'SANITY'},{stat:'approval',delta:1,label:'KELLOGG'}]);
+  } else {
+    d.batResult='out';d.phase='bat_result';
+    finishSQ(false,'SWUNG WRONG!','Ford leaves without a word. Henry Ford.',
+      [{stat:'sanity',delta:-5,label:'SANITY'}]);
+  }
+}
+function sqBaseballStrikeout(){
+  const d=sqData;
+  d.swingDone=true;d.batResult='strike';d.phase='bat_result';
+  finishSQ(false,'STRIKE OUT!','Ford leaves without a word. Henry Ford.',
+    [{stat:'sanity',delta:-10,label:'SANITY'}]);
+}
+
+// ─── FLASHLIGHT SEARCH ─────────────────────────────────────────
+function initSQFlashlight(){
+  const pad=40;
+  sqData={
+    recipeX:pad+Math.random()*(W-pad*2),
+    recipeY:GY-80+Math.random()*60,
+    timer:20,startT:Date.now(),
+    found:false,phase:'searching',
+    visible:false,
+  };
+}
+function drawSQFlashlight(){
+  const d=sqData;
+  const elapsed=(Date.now()-d.startT)/1000;
+  const rem=Math.max(0,20-elapsed);
+  if(d.phase==='searching')d.timer=rem;
+  // Render the kitchen scene normally
+  drawScene('kitchen_night',scroll*0.2,walkF*0.05);
+  drawWill(~~(W*.703),GY-20,0);
+  // Timer bar at top
+  box(0,0,W,isMobile?24:18,'#000011');
+  const tfrac=rem/20;
+  box(0,0,W,isMobile?24:18,'#000011');
+  box(4,isMobile?4:3,~~((W-8)*tfrac),isMobile?12:10,tfrac>0.5?C.GR:tfrac>0.25?C.YL:C.RD);
+  cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(4,isMobile?4:3,W-8,isMobile?12:10);
+  T('TIME: '+Math.ceil(rem)+'s',W/2-20,isMobile?5:2,C.WH,isMobile?8:7);
+  // Notebook — show if flashlight close enough
+  const dx=mouseX-d.recipeX,dy=mouseY-d.recipeY;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  d.visible=(dist<60);
+  if(d.visible||d.phase==='found'){
+    box(d.recipeX-6,d.recipeY-5,12,10,'#ccaa22');
+    cx.strokeStyle='#886600';cx.lineWidth=1;cx.strokeRect(d.recipeX-6,d.recipeY-5,12,10);
+    T('NB',d.recipeX-4,d.recipeY-4,'#000000',6);
+  }
+  // Darkness overlay with radial gradient hole
+  const lx=mouseX,ly=mouseY;
+  const grad=cx.createRadialGradient(lx,ly,8,lx,ly,80);
+  grad.addColorStop(0,'rgba(0,0,8,0)');
+  grad.addColorStop(1,'rgba(0,0,8,0.97)');
+  cx.fillStyle=grad;cx.fillRect(0,0,W,H);
+  // Overlay the timer bar so it's always visible
+  box(0,0,W,isMobile?24:18,'rgba(0,0,17,0.7)');
+  box(4,isMobile?4:3,~~((W-8)*tfrac),isMobile?12:10,tfrac>0.5?C.GR:tfrac>0.25?C.YL:C.RD);
+  cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(4,isMobile?4:3,W-8,isMobile?12:10);
+  T('TIME: '+Math.ceil(rem)+'s',W/2-20,isMobile?5:2,C.WH,isMobile?8:7);
+  if(d.phase==='searching'&&rem<=0){
+    sqFlashlightTimeout();
+  }
+}
+function sqFlashlightClick(){
+  const d=sqData;
+  if(d.phase!=='searching')return;
+  if(d.visible){
+    d.found=true;d.phase='found';
+    finishSQ(true,'FOUND IT!','The recipe. Sugar and malt. John is going to hate this.',
+      [{stat:'sanity',delta:10,label:'SANITY'}]);
+  }
+}
+function sqFlashlightTimeout(){
+  const d=sqData;
+  if(d.phase!=='searching')return;
+  d.phase='timeout';
+  finishSQ(false,'TIME\'S UP!','The lamp runs out. Kellogg finds you in the dark. Another enema.',
+    [{stat:'sanity',delta:-5,label:'SANITY'},{stat:'enemas',delta:1,label:'ENEMAS'}]);
+}
+
+// ─── SQ RESULT ─────────────────────────────────────────────────
+function drawSQResult(){
+  const r=sqResult;if(!r)return;
+  box(0,0,W,H,'#000022');
+  // Banner
+  const banCol=r.won?C.GR:C.RD;
+  box(0,isMobile?60:46,W,isMobile?56:44,'#001100');
+  hln(isMobile?60:46,banCol);hln(isMobile?116:90,banCol);
+  TC(r.won?'★  SIDE QUEST COMPLETE  ★':'✗  SIDE QUEST FAILED  ✗',isMobile?68:52,banCol,isMobile?11:10);
+  TC(r.title,isMobile?84:66,C.WH,isMobile?9:8);
+  // Message
+  const msgLines=wrap(r.msg,W-24,isMobile?9:8);
+  let ty=isMobile?130:102;
+  for(const ln of msgLines){TC(ln,ty,C.LG,isMobile?9:8);ty+=isMobile?16:13;}
+  // Stat changes
+  ty+=isMobile?12:8;
+  for(const c of r.statChanges){
+    const col=c.delta>0?C.GR:C.RD;
+    const sign=c.delta>0?'+':'';
+    TC(c.label+': '+sign+c.delta,ty,col,isMobile?9:8);
+    ty+=isMobile?16:13;
+  }
+  // Continue button
+  const btnH=isMobile?38:28;
+  const btnY=H-btnH-12;
+  const hov=mouseY>=btnY&&mouseY<=btnY+btnH;
+  dbox(W/2-80,btnY,160,btnH,'#001100',hov?C.YL:C.GR);
+  TC('[ CONTINUE ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?10:9);
+}
 
 // ═══════════════════════════════════════════════
 // HUD
@@ -1674,6 +2272,13 @@ cv.addEventListener('touchstart',e=>{
   mouseY=(t.clientY-r.top)*(H/r.height);
   handleClick();
 },{passive:false});
+cv.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const t=e.touches[0];
+  mouseX=(t.clientX-r.left)*(W/r.width);
+  mouseY=(t.clientY-r.top)*(H/r.height);
+},{passive:false});
 window.addEventListener('keydown',e=>{
   if(state==='title'&&(e.key===' '||e.key==='Enter')){startGame();return;}
   if(state==='event'){
@@ -1712,6 +2317,59 @@ function handleClick(){
     const cBtnY=isMobile?H-62:H-28;
     if(mouseY>=cBtnY){continueAfterOutcome();return;}
   }
+  // Side quest states
+  if(state==='sq_intro'){
+    const btnH=isMobile?38:28,btnY=H-btnH-16;
+    if(mouseY>=btnY&&mouseY<=btnY+btnH){state='sq_'+sqType;return;}
+  }
+  if(state==='sq_vingtun'){
+    const btnH=isMobile?36:26,gap=8,bw=(W-24-gap)/2;
+    const by=H-btnH-10;
+    if(mouseY>=by&&mouseY<=by+btnH){
+      if(mouseX<=(W/2-gap/2))sqVingtunHit();
+      else if(mouseX>=(W/2+gap/2))sqVingtunStand();
+      return;
+    }
+  }
+  if(state==='sq_electric'){
+    if(sqData.phase==='countdown'){
+      const btnH=isMobile?40:30,by=H-btnH-8;
+      if(mouseY>=by&&mouseY<=by+btnH){sqElectricHold();return;}
+    }
+  }
+  if(state==='sq_baseball'){
+    const d=sqData;
+    if(d.phase==='pitch_select'){
+      // Pitch type buttons
+      const bW=isMobile?88:72,bH=isMobile?28:22;
+      const gx=isMobile?W/2-54:W/2-45;
+      const gy2=isMobile?170:135;
+      const csz=isMobile?36:30;
+      const bY=gy2+3*csz+(isMobile?8:6);
+      if(mouseY>=bY&&mouseY<=bY+bH){
+        for(let i=0;i<3;i++){const bx2=8+i*(bW+4);if(mouseX>=bx2&&mouseX<=bx2+bW){sqBaseballSelectPitch(i);return;}}
+      }
+      // Zone grid
+      const zGY=isMobile?170:135;
+      if(mouseY>=zGY&&mouseY<zGY+3*csz){
+        const col=~~((mouseX-gx)/csz),row=~~((mouseY-zGY)/csz);
+        if(col>=0&&col<3&&row>=0&&row<3){sqBaseballSelectZone(row*3+col);return;}
+      }
+      // Pitch button
+      if(d.pitchType!==null&&d.pitchZone!==null){
+        const pbH=isMobile?34:26,pbW=isMobile?120:100;
+        const pbY=H-pbH-8,pbX=(W-pbW)/2;
+        if(mouseY>=pbY&&mouseY<=pbY+pbH&&mouseX>=pbX&&mouseX<=pbX+pbW){sqBaseballPitch();return;}
+      }
+    }
+    if(d.phase==='pitch_result'&&d.npcResult==='out'){sqBaseballStartBatting();return;}
+    if(d.phase==='bat_anim'||d.phase==='bat_wait'){sqBaseballSwing();return;}
+  }
+  if(state==='sq_flashlight'){sqFlashlightClick();return;}
+  if(state==='sq_result'){
+    const btnH=isMobile?38:28,btnY=H-btnH-12;
+    if(mouseY>=btnY&&mouseY<=btnY+btnH){continueAfterSQ();return;}
+  }
   const dBtnY=isMobile?H-70:304;
   if(state==='death'&&mouseY>=dBtnY&&mouseY<=dBtnY+28)restartGame();
   const vBtnY=isMobile?H-70:GY+130;
@@ -1731,6 +2389,7 @@ let outcomeData=null;
 let scroll=0,walkF=0;
 let travelDist=0,travelGoal=100;
 let titleT=0;
+let pendingSQ=null,sqType=null,sqData={},sqResult=null;
 
 function shuffleChoices(events){
   return events.map(ev=>{
@@ -1758,9 +2417,19 @@ function pickChoice(i){
   if(e.approval){changes.push({label:'KELLOGG',delta:e.approval});G.approval=Math.max(0,Math.min(5,G.approval+e.approval));}
   if(e.enemas){changes.push({label:'ENEMAS',delta:e.enemas});G.enemas+=e.enemas;}
   outcomeData={type:ch.o,msg:ch.r,statChanges:changes};
+  if(ch.o==='good'&&currentEvent.sq)pendingSQ=currentEvent.sq;
   state='outcome';
 }
 function continueAfterOutcome(){
+  if(G.sanity<=0){deathType='sanity';state='death';return;}
+  if(G.approval<=0){deathType='expelled';state='death';return;}
+  if(pendingSQ){sqType=pendingSQ;pendingSQ=null;initSQ(sqType);state='sq_intro';return;}
+  sceneIdx++;
+  if(sceneIdx>=gameEvents.length){state='victory';return;}
+  state='travel';travelDist=0;travelGoal=80+Math.random()*40;
+  currentEvent=null;
+}
+function continueAfterSQ(){
   if(G.sanity<=0){deathType='sanity';state='death';return;}
   if(G.approval<=0){deathType='expelled';state='death';return;}
   sceneIdx++;
@@ -1771,7 +2440,9 @@ function continueAfterOutcome(){
 function restartGame(){
   G={sanity:75,bowel:3,approval:5,enemas:0,day:1};
   sceneIdx=0;scroll=0;travelDist=0;travelGoal=90;
-  currentEvent=null;outcomeData=null;deathType='sanity';state='title';
+  currentEvent=null;outcomeData=null;deathType='sanity';
+  pendingSQ=null;sqType=null;sqData={};sqResult=null;
+  state='title';
 }
 
 // ═══════════════════════════════════════════════
@@ -1833,6 +2504,13 @@ function loop(ts){
     const hov=mouseY>=vBtnY&&mouseY<=vBtnY+26;
     drawVictoryEnd(G,hov,scroll,walkF);return;
   }
+  // Side quest states
+  if(state==='sq_intro'){drawSQIntro();return;}
+  if(state==='sq_vingtun'){drawSQVingtun();return;}
+  if(state==='sq_electric'){sqElectricTick(dt);drawSQElectric();return;}
+  if(state==='sq_baseball'){drawSQBaseball();return;}
+  if(state==='sq_flashlight'){drawSQFlashlight();return;}
+  if(state==='sq_result'){drawSQResult();return;}
 }
 requestAnimationFrame(loop);
 </script>
