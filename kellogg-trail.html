@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>The Kellogg Trail</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -15,13 +16,16 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 'use strict';
 const cv=document.getElementById('c');
 const cx=cv.getContext('2d');
-const W=640,H=400;
+let W=640,H=400,GY=210,TB_Y=214,isMobile=false;
 const DPR=Math.min(window.devicePixelRatio||1,2);
-cv.width=W*DPR;cv.height=H*DPR;
-cx.scale(DPR,DPR);
-
 function resize(){
-  const s=Math.min(window.innerWidth/W,window.innerHeight/H);
+  const vw=window.innerWidth,vh=window.innerHeight;
+  isMobile=(vw<vh&&vw<600);
+  if(isMobile){W=360;H=600;GY=220;}else{W=640;H=400;GY=210;}
+  TB_Y=GY+4;
+  cv.width=W*DPR;cv.height=H*DPR;
+  cx.setTransform(DPR,0,0,DPR,0,0);
+  const s=Math.min(vw/W,vh/H);
   cv.style.width=Math.floor(W*s)+'px';
   cv.style.height=Math.floor(H*s)+'px';
 }
@@ -344,7 +348,7 @@ function drawFord(ox,oy,frame){
 // ═══════════════════════════════════════════════
 // Oregon Trail style: top half = scrolling scene, bottom half = text
 
-const GY=210; // ground Y (where bottom of scene is)
+// GY, TB_Y, isMobile — declared as let in canvas setup above
 
 // Scenery objects for each scene type
 function drawScene(sceneType,scrollX,walkF){
@@ -839,43 +843,42 @@ function placeNPCs(sceneType,walkF){
   const gy2=GY-20; // feet level
   switch(sceneType){
     case 'approach':
-      // Kellogg waiting at the sanitarium entrance
-      drawKellogg(460,gy2,walkF);
-      drawNurse(510,gy2,walkF,'tray');
+      drawKellogg(~~(W*.719),gy2,walkF);
+      drawNurse(~~(W*.797),gy2,walkF,'tray');
       break;
     case 'lobby':
-      drawKellogg(420,gy2,walkF);
-      drawDoctor(490,gy2,walkF);
-      drawNurse(540,gy2,walkF,'tray');
+      drawKellogg(~~(W*.656),gy2,walkF);
+      drawDoctor(~~(W*.766),gy2,walkF);
+      drawNurse(~~(W*.844),gy2,walkF,'tray');
       break;
     case 'lecture':
-      drawKellogg(380,gy2,walkF); // at podium area
-      drawFord(520,gy2,0); // seated, watching
+      drawKellogg(~~(W*.594),gy2,walkF);
+      drawFord(~~(W*.813),gy2,0);
       break;
     case 'hydrotherapy':
-      drawNurse(400,gy2,walkF,'enema');
-      drawDoctor(460,gy2,walkF);
-      drawNurse(520,gy2,walkF,'pot');
+      drawNurse(~~(W*.625),gy2,walkF,'enema');
+      drawDoctor(~~(W*.719),gy2,walkF);
+      drawNurse(~~(W*.813),gy2,walkF,'pot');
       break;
     case 'kitchen_day':
-      drawWill(440,gy2,walkF);
-      drawNurse(500,gy2,walkF,'tray');
+      drawWill(~~(W*.688),gy2,walkF);
+      drawNurse(~~(W*.781),gy2,walkF,'tray');
       break;
     case 'sunroom':
-      drawPost(420,gy2,walkF);
-      drawDoctor(490,gy2,walkF);
+      drawPost(~~(W*.656),gy2,walkF);
+      drawDoctor(~~(W*.766),gy2,walkF);
       break;
     case 'kitchen_night':
-      drawWill(450,gy2,walkF);
+      drawWill(~~(W*.703),gy2,walkF);
       break;
     case 'office':
-      drawKellogg(370,gy2,walkF);
-      drawWill(470,gy2,walkF);
+      drawKellogg(~~(W*.578),gy2,walkF);
+      drawWill(~~(W*.734),gy2,walkF);
       break;
     case 'victory':
-      drawWill(380,gy2,walkF);
-      drawNurse(440,gy2,walkF,'tray');
-      drawKellogg(500,gy2,0); // frozen, disapproving, far away
+      drawWill(~~(W*.594),gy2,walkF);
+      drawNurse(~~(W*.688),gy2,walkF,'tray');
+      drawKellogg(~~(W*.781),gy2,0);
       break;
   }
 }
@@ -1066,8 +1069,31 @@ const EVENTS=[
        r:'Your restraint is noticed. Selected for the advanced chewing demo. This is apparently a great honor.'},
       {k:'2',t:'Ask why the food tastes like warm cardboard.',o:'neutral',e:{sanity:-5},
        r:'"Flavor is excitement. Excitement agitates the bowel." He hands you a pamphlet. You already have this pamphlet.'},
-      {k:'3',t:'Mention you enjoyed chicken back home.',o:'bad',e:{approval:-2,sanity:-10,enemas:1},
+      {k:'3',t:'Mention you enjoyed chicken back home.',o:'bad',e:{approval:-2,sanity:-15,enemas:1},
        r:'Removed for an emergency preventive enema. Ford watches you leave and shakes his head slowly.'},
+    ],
+  },
+  {
+    scene:'lecture',day:4,npc:'Fletcher',
+    header:'DAY 4  --  THE GREAT MASTICATOR',
+    sub:'DINING HALL, THE SANITARIUM',
+    lines:[
+      'Horace Fletcher arrives. His theory: chew',
+      'every bite 32-100 times until fully liquefied.',
+      '"Liquids must also be chewed." He demonstrates.',
+      '',
+      '"If it ain\'t Fletcherized, it ain\'t food."',
+      'He chews milk. For thirty seconds.',
+      'Kellogg applauds. There is a Chewing Song.',
+    ],
+    fact:'NOTE: Fletcher tested this on Yale athletes at age 58. They could not keep up.',
+    choices:[
+      {k:'1',t:'Chew your grain mush 32 times. Then 32 more.',o:'good',e:{approval:1,sanity:-10},
+       r:'"Capital! You will sense the sweetness of fully-masticated cellulose." You do not. Your jaw aches for four days. The chewing log in your chart is impeccable.'},
+      {k:'2',t:'Attempt 27 chews before your brain intervenes.',o:'neutral',e:{sanity:-10},
+       r:'Fletcher marks you INSUFFICIENT. You receive CHEWING: A SECOND CHANCE. It is 64 pages. The last chapter is about chewing water.'},
+      {k:'3',t:'Point out that chewing milk is not possible.',o:'bad',e:{approval:-2,sanity:-15,enemas:1},
+       r:'"Your resistance manifests physically in the bowel." Emergency enema ordered. You chew your dinner alone. 32 times per bite. You count every one.'},
     ],
   },
   {
@@ -1113,6 +1139,29 @@ const EVENTS=[
        r:'You receive eleven pamphlets. The references cite other Kellogg pamphlets. You sit in the box for twenty minutes anyway.'},
       {k:'3',t:'Note that it is essentially a large toaster.',o:'bad',e:{approval:-2,sanity:-20,enemas:1},
        r:'"Heresy manifests physically in the bowel." Emergency enema. Then you sit in the box anyway. Still a large toaster.'},
+    ],
+  },
+  {
+    scene:'kitchen_day',day:7,npc:'Will',
+    header:'DAY 7  --  THE NUT PASTE EXPERIMENT',
+    sub:'KITCHEN CORRIDOR, THE SANITARIUM',
+    lines:[
+      'Will holds a jar of something brown and wrong.',
+      '"Boiled peanut paste. High protein. No flavor.',
+      'Patent pending." He hands you a spoon.',
+      '',
+      'The paste smells of boiled socks and ambition.',
+      'Dr. Kellogg appears. "Zero excitement.',
+      'Excellent mastication potential." He leaves.',
+    ],
+    fact:'NOTE: Kellogg filed Patent #604493 for nut butter in 1898. Will made it. John claimed it.',
+    choices:[
+      {k:'1',t:'Eat it. It is technically food.',o:'good',e:{sanity:5},
+       r:'"Good?" Will asks. You nod without conviction. He writes in his notebook. The paste is approximately edible. You have eaten worse this week. Significantly worse.'},
+      {k:'2',t:'Ask what happened to the flavor.',o:'neutral',e:{sanity:-5},
+       r:'"Flavor agitates the bowel." Will says this with fifteen years of resignation in every syllable. He has no other answer. Neither do you.'},
+      {k:'3',t:'Say it reminds you of the enema yogurt.',o:'bad',e:{approval:-2,sanity:-15,enemas:1},
+       r:'Dr. Kellogg materializes from the hallway. He was listening. He is always listening. Emergency preventive enema. Will does not look up from his notebook.'},
     ],
   },
   {
@@ -1185,6 +1234,29 @@ const EVENTS=[
     ],
   },
   {
+    scene:'hydrotherapy',day:12,npc:'Nurse',
+    header:'DAY 12  --  THE CONTINUOUS BATH',
+    sub:'HYDROTHERAPY WING, THE SANITARIUM',
+    lines:[
+      'Dr. Kellogg has prescribed a "continuous bath."',
+      'His notes: patients may remain submerged for',
+      '"many days, weeks, or months" as required.',
+      '',
+      'The patient in the next tub has been in since',
+      'Monday. Today is Friday. He looks very calm.',
+      'His eyes are open. He is still breathing.',
+    ],
+    fact:'NOTE: The sanitarium offered 46 different bath types. This was the most committed option.',
+    choices:[
+      {k:'1',t:'Get in. Learn to float. Let your mind go blank.',o:'good',e:{bowel:1,enemas:1,approval:1,sanity:-10},
+       r:'The water is warm. The man next to you begins explaining his mill operations. You cannot leave. He talks until dinner. You achieve something like peace despite this.'},
+      {k:'2',t:'Ask how long "continuous" actually means.',o:'neutral',e:{sanity:-15},
+       r:'"Until therapeutic completion." There is no chair. You get in the tub. Chart: moderate resistance. The man next to you has been here since Tuesday. He is still talking.'},
+      {k:'3',t:'Suggest the protocol lacks adequate ventilation.',o:'bad',e:{approval:-3,sanity:-20},
+       r:'"Comfort obstructs treatment." Kellogg personally extends your session two hours. The mill man is still talking. You have been here since Tuesday now. You are peers.'},
+    ],
+  },
+  {
     scene:'lobby',day:13,npc:'Post',
     header:'DAY 13  --  THE DEPARTURE',
     sub:'LOBBY, THE SANITARIUM',
@@ -1226,8 +1298,8 @@ const EVENTS=[
        r:'You eat the first corn flake at midnight in Michigan, 1894. Will watches your face carefully.'},
       {k:'2',t:'Watch silently. Do not interrupt the moment.',o:'good',e:{sanity:15},
        r:'Will eats the first flake alone. He stares at nothing for four minutes. You have witnessed the exact moment.'},
-      {k:'3',t:'Back away and tell Dr. Kellogg in the morning.',o:'bad',e:{approval:2,sanity:-20,bowel:-1},
-       r:'John claims it immediately: medical grain therapy, no sugar, strictly functional. Will says nothing. For now.'},
+      {k:'3',t:'Back away and tell Dr. Kellogg in the morning.',o:'bad',e:{approval:2,sanity:-25,bowel:-1},
+       r:'John claims it immediately: medical grain therapy, no sugar, strictly functional. Will says nothing. His face says everything. For now.'},
     ],
   },
   {
@@ -1251,6 +1323,29 @@ const EVENTS=[
        r:'Both men look at you. You say nothing. The argument continues for years. You feel fine about this.'},
       {k:'3',t:'Propose "therapeutic sweetness" -- prescribed sugar.',o:'good',e:{sanity:5,approval:1},
        r:'John strokes his beard. A therapeutic sweetness -- he could write a paper. Will mouths "thank you." Sugar goes in.'},
+    ],
+  },
+  {
+    scene:'lobby',day:19,npc:'Kellogg',
+    header:'DAY 19  --  THE CONFERENCE',
+    sub:'GRAND LOBBY, THE SANITARIUM',
+    lines:[
+      'The First Race Betterment Conference opens.',
+      '400 experts. Babies are lined up in the lobby',
+      'to be judged on "physical perfection."',
+      '',
+      'A baby wins bronze for superior skull shape.',
+      'Kellogg takes the podium: "We must improve',
+      'our national hereditary stock."',
+    ],
+    fact:'NOTE: Real, 1914, Battle Creek Sanitarium. Kellogg left his entire estate to this foundation.',
+    choices:[
+      {k:'1',t:'Quietly excuse yourself. Find Will in the kitchen.',o:'good',e:{sanity:15,approval:-2},
+       r:'Will is staring at cornmeal. "How\'s the conference?" You say you left. He nods slowly. "Yeah." You both look at the cornmeal for a long time. It is a relief.'},
+      {k:'2',t:'Sit down. Try to understand the logic.',o:'neutral',e:{sanity:-15},
+       r:'There is no logic that holds. Three hours on "hereditary vigor." The babies cry throughout. You fill three pages with "what is happening." None of it helps.'},
+      {k:'3',t:'Applaud. Keep the approval numbers up.',o:'bad',e:{approval:1,sanity:-25},
+       r:'Kellogg nods at you. A baby takes gold for "cranial proportion." You have applauded a medal ceremony for an infant\'s skull. This follows you home. You know it will.'},
     ],
   },
   {
@@ -1282,20 +1377,40 @@ const EVENTS=[
 // HUD
 // ═══════════════════════════════════════════════
 function drawHUD(G){
-  box(0,0,W,22,'#000022');
-  hln(22,C.CY);hln(23,'#003344');
-  T('SANITY:',6,5,C.DK,7);
-  box(58,7,84,8,'#001100');box(58,7,~~(G.sanity*0.84),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
-  cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(58,7,84,8);
-  T(G.sanity+'%',148,5,C.GR,7);
-  T('BOWEL:',195,5,C.DK,7);
-  const bn=['CRITICAL','POOR','OKAY','GOOD','OPTIMAL'];
-  T(bn[Math.max(0,Math.min(4,G.bowel))],245,5,C.YL,7);
-  T('ENEMAS:',360,5,C.DK,7);
-  T(String(G.enemas),415,5,C.CY,7);
-  T('KELLOGG:',445,5,C.DK,7);
-  T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),502,5,C.YL,7);
-  TR('DAY '+G.day+'  ['+Math.min(sceneIdx+1,gameEvents.length||11)+'/11]',W-6,5,C.WH,7);
+  if(isMobile){
+    box(0,0,W,28,'#000022');
+    hln(28,C.CY);hln(29,'#003344');
+    // Row 1: sanity bar + day counter
+    T('SAN:',4,3,C.DK,7);
+    box(30,5,72,8,'#001100');
+    box(30,5,~~(G.sanity*0.72),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
+    cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(30,5,72,8);
+    T(G.sanity+'%',108,3,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD,7);
+    TR('DAY '+G.day+' ['+Math.min(sceneIdx+1,gameEvents.length||15)+'/15]',W-4,3,C.WH,7);
+    // Row 2: bowel, enemas, kellogg approval
+    const bn=['CRIT','POOR','OKAY','GOOD','OPT!'];
+    T('BWL:',4,15,C.DK,7);
+    T(bn[Math.max(0,Math.min(4,G.bowel))],32,15,C.YL,7);
+    T('ENA:',108,15,C.DK,7);
+    T(String(G.enemas),136,15,C.CY,7);
+    T('KLG:',172,15,C.DK,7);
+    T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),200,15,C.YL,7);
+  } else {
+    box(0,0,W,22,'#000022');
+    hln(22,C.CY);hln(23,'#003344');
+    T('SANITY:',6,5,C.DK,7);
+    box(58,7,84,8,'#001100');box(58,7,~~(G.sanity*0.84),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
+    cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(58,7,84,8);
+    T(G.sanity+'%',148,5,C.GR,7);
+    T('BOWEL:',195,5,C.DK,7);
+    const bn=['CRITICAL','POOR','OKAY','GOOD','OPTIMAL'];
+    T(bn[Math.max(0,Math.min(4,G.bowel))],245,5,C.YL,7);
+    T('ENEMAS:',360,5,C.DK,7);
+    T(String(G.enemas),415,5,C.CY,7);
+    T('KELLOGG:',445,5,C.DK,7);
+    T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),502,5,C.YL,7);
+    TR('DAY '+G.day+'  ['+Math.min(sceneIdx+1,gameEvents.length||15)+'/15]',W-6,5,C.WH,7);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1316,62 +1431,131 @@ function drawProgressBar(dist,goal){
 // ═══════════════════════════════════════════════
 // TEXT BOX (bottom half)
 // ═══════════════════════════════════════════════
-const TB_Y=GY+4; // top of text box
+// TB_Y declared as let in canvas setup above
+
+// Returns the Y position of the first choice for the current layout
+function choiceBaseY(ev){
+  if(isMobile){
+    let ty=TB_Y+34;
+    ev.lines.forEach(()=>ty+=14);
+    if(ev.fact){
+      ty+=wrap(ev.fact,W-16,7).length*12+8;
+    }
+    ty+=10;
+    return ty;
+  } else {
+    let ty=TB_Y+23;
+    ev.lines.forEach(()=>ty+=11);
+    if(ev.fact)ty+=14;
+    ty+=7;
+    return ty;
+  }
+}
 
 function drawEventBox(ev,hoverChoice){
   box(0,GY,W,H-GY,'#000022');
   hln(GY,C.CY);hln(GY+1,'#003344');
-  // Header row
-  T(ev.header,8,TB_Y+4,C.YL,8);
-  TR(ev.sub,W-8,TB_Y+4,C.CY,7);
-  hln(TB_Y+17,'#003344');hln(TB_Y+18,C.DCYA);
 
-  // Lines
-  let ty=TB_Y+23;
-  ev.lines.forEach(line=>{
-    const col=line.startsWith('"')||line.startsWith('WILL')||line.startsWith('JOHN')?C.CY:
-              line===''?C.BK:C.WH;
-    T(line,8,ty,col,7);ty+=11;
-  });
-  if(ev.fact){
-    hln(ty+1,'#553300');
-    T(ev.fact,8,ty+4,C.DYEL,6);ty+=14;
+  if(isMobile){
+    // Portrait: larger fonts, more line spacing, full-width choices
+    T(ev.header,8,TB_Y+4,C.YL,10);
+    T(ev.sub,8,TB_Y+18,C.CY,7);
+    hln(TB_Y+29,'#003344');hln(TB_Y+30,C.DCYA);
+    let ty=TB_Y+34;
+    ev.lines.forEach(line=>{
+      const col=line.startsWith('"')||line.startsWith('WILL')||line.startsWith('JOHN')?C.CY:
+                line===''?C.BK:C.WH;
+      T(line,8,ty,col,9);ty+=14;
+    });
+    if(ev.fact){
+      hln(ty+1,'#553300');
+      const fl=wrap(ev.fact,W-16,7);
+      fl.forEach(l=>{T(l,8,ty+4,C.DYEL,7);ty+=12;});
+      ty+=8;
+    }
+    hln(ty+2,'#003344');ty+=10;
+    ev.choices.forEach((ch,i)=>{
+      const y2=ty+i*28;
+      if(hoverChoice===i)box(4,y2-3,W-8,26,'#002200');
+      T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,9);
+      T(ch.t,24,y2,hoverChoice===i?C.GR:C.WH,9);
+    });
+  } else {
+    // Landscape: original compact layout
+    T(ev.header,8,TB_Y+4,C.YL,8);
+    TR(ev.sub,W-8,TB_Y+4,C.CY,7);
+    hln(TB_Y+17,'#003344');hln(TB_Y+18,C.DCYA);
+    let ty=TB_Y+23;
+    ev.lines.forEach(line=>{
+      const col=line.startsWith('"')||line.startsWith('WILL')||line.startsWith('JOHN')?C.CY:
+                line===''?C.BK:C.WH;
+      T(line,8,ty,col,7);ty+=11;
+    });
+    if(ev.fact){
+      hln(ty+1,'#553300');
+      T(ev.fact,8,ty+4,C.DYEL,6);ty+=14;
+    }
+    hln(ty+2,'#003344');ty+=7;
+    ev.choices.forEach((ch,i)=>{
+      const y2=ty+i*15;
+      if(hoverChoice===i)box(4,y2-1,W-8,13,'#002200');
+      T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,7);
+      T(ch.t,20,y2,hoverChoice===i?C.GR:C.WH,7);
+    });
   }
-  hln(ty+2,'#003344');ty+=7;
-
-  ev.choices.forEach((ch,i)=>{
-    const y2=ty+i*15;
-    if(hoverChoice===i)box(4,y2-1,W-8,13,'#002200');
-    T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,7);
-    T(ch.t,20,y2,hoverChoice===i?C.GR:C.WH,7);
-  });
 }
 
 function drawOutcomeBox(od,hoverCont,mouseY2){
-  // Left side: sprite background then sprite
-  box(0,GY,220,H-GY,'#000011');
-  if(od.type==='good')drawGoodSprite(58,GY+38);
-  else if(od.type==='bad')drawBadSprite(58,GY+28);
-  else drawNeutralSprite(58,GY+28);
-  box(220,GY,1,H-GY,C.CY);
-  // Right side: result
-  const tx=228,ty=GY+4,tw=W-tx-8;
-  box(tx-2,GY,W-tx+2,H-GY,'#000022');
-  hln(GY,C.CY);hln(GY+1,'#003344');
   const banCol=od.type==='good'?C.GR:od.type==='bad'?C.RD:C.LG;
   const banTxt=od.type==='good'?'[ GOOD CHOICE ]':od.type==='bad'?'[ BAD CHOICE ]':'[ NEUTRAL ]';
-  T(banTxt,tx,ty+4,banCol,8);
-  hln(ty+16,'#003344');
-  const rlines=wrap(od.msg,tw-4,7);
-  let ry=ty+20;
-  rlines.forEach(l=>{T(l,tx,ry,C.WH,7);ry+=12;});
-  ry+=6;
-  od.statChanges.forEach(({label,delta})=>{
-    T((delta>0?'+':'')+delta+' '+label,tx,ry,delta>0?C.GR:C.RD,7);ry+=12;
-  });
-  hln(H-28,'#003344');
-  const contHov=mouseY2>=H-26&&mouseY2<=H-4;
-  T('SPACE OR CLICK TO CONTINUE  >>',tx,H-24,contHov?C.YL:C.GR,7);
+
+  if(isMobile){
+    // Portrait: banner → centered sprite → wrapped text → tap button
+    box(0,GY,W,H-GY,'#000022');
+    hln(GY,C.CY);hln(GY+1,'#003344');
+    TC(banTxt,TB_Y+4,banCol,10);
+    hln(TB_Y+18,'#003344');
+    // Sprite centered
+    const sx=~~((W-104)/2);
+    if(od.type==='good')drawGoodSprite(sx,TB_Y+22);
+    else if(od.type==='bad')drawBadSprite(sx,TB_Y+22);
+    else drawNeutralSprite(sx,TB_Y+22);
+    // Result text below sprite
+    const rlines=wrap(od.msg,W-16,8);
+    let ry=TB_Y+134;
+    rlines.forEach(l=>{T(l,8,ry,C.WH,8);ry+=13;});
+    ry+=6;
+    od.statChanges.forEach(({label,delta})=>{
+      T((delta>0?'+':'')+delta+' '+label,8,ry,delta>0?C.GR:C.RD,8);ry+=13;
+    });
+    // Continue button
+    const cBtnY=H-62;
+    const contHov=mouseY2>=cBtnY&&mouseY2<=cBtnY+32;
+    dbox(W/2-100,cBtnY,200,32,'#000022',contHov?C.YL:C.GR);
+    TC('TAP TO CONTINUE >>',cBtnY+10,contHov?C.YL:C.GR,9);
+  } else {
+    // Landscape: sprite left, text right
+    box(0,GY,220,H-GY,'#000011');
+    if(od.type==='good')drawGoodSprite(58,GY+38);
+    else if(od.type==='bad')drawBadSprite(58,GY+28);
+    else drawNeutralSprite(58,GY+28);
+    box(220,GY,1,H-GY,C.CY);
+    const tx=228,ty=GY+4,tw=W-tx-8;
+    box(tx-2,GY,W-tx+2,H-GY,'#000022');
+    hln(GY,C.CY);hln(GY+1,'#003344');
+    T(banTxt,tx,ty+4,banCol,8);
+    hln(ty+16,'#003344');
+    const rlines=wrap(od.msg,tw-4,7);
+    let ry=ty+20;
+    rlines.forEach(l=>{T(l,tx,ry,C.WH,7);ry+=12;});
+    ry+=6;
+    od.statChanges.forEach(({label,delta})=>{
+      T((delta>0?'+':'')+delta+' '+label,tx,ry,delta>0?C.GR:C.RD,7);ry+=12;
+    });
+    hln(H-28,'#003344');
+    const contHov=mouseY2>=H-26&&mouseY2<=H-4;
+    T('SPACE OR CLICK TO CONTINUE  >>',tx,H-24,contHov?C.YL:C.GR,7);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1380,62 +1564,91 @@ function drawOutcomeBox(od,hoverCont,mouseY2){
 function drawTitle(scrollX,walkF,blink){
   drawScene('approach',scrollX,walkF);
   drawPatient(100,GY-20,walkF);
-  drawKellogg(460,GY-20,walkF);
-  drawNurse(510,GY-20,walkF,'tray');
+  drawKellogg(~~(W*.719),GY-20,walkF);
+  drawNurse(~~(W*.797),GY-20,walkF,'tray');
   drawHUD({sanity:100,bowel:3,approval:5,enemas:0,day:1});
 
-  box(40,30,W-80,H-55,'#000022');
-  dbox(40,30,W-80,H-55,'#000022',C.CY);
-
-  TC('THE KELLOGG TRAIL',60,C.YL,18);
-  TC('BATTLE CREEK SANITARIUM',88,C.CY,9);
-  TC('MICHIGAN, 1894',100,C.DCYA,7);
-  hln(114,C.DBLU);hln(115,'#001133');
-  TC('Survive Dr. Kellogg\'s bowel health regime.',122,C.WH,7);
-  TC('Endure the yogurt enemas.',135,C.WH,7);
-  TC('Witness the discovery of corn flakes.',148,C.WH,7);
-  TC('(Everything in this game actually happened.)',162,C.LG,7);
-  hln(178,C.DBLU);
-  if(blink)TC('PRESS SPACE OR CLICK TO BEGIN',188,C.GR,9);
-  TC('USE NUMBER KEYS 1-3 OR CLICK TO CHOOSE',204,C.DK,7);
-  TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',222,C.DK,6);
+  if(isMobile){
+    const by=GY+2;
+    box(0,by,W,H-by,'#000022');
+    dbox(0,by,W,H-by,'#000022',C.CY);
+    TC('THE KELLOGG TRAIL',by+18,C.YL,14);
+    TC('BATTLE CREEK SANITARIUM',by+38,C.CY,9);
+    TC('MICHIGAN, 1894',by+52,C.DCYA,7);
+    hln(by+65,C.DBLU);hln(by+66,'#001133');
+    TC('Survive Dr. Kellogg\'s health regime.',by+73,C.WH,7);
+    TC('Endure the yogurt enemas.',by+86,C.WH,7);
+    TC('Witness the discovery of corn flakes.',by+99,C.WH,7);
+    TC('(Everything in this game actually happened.)',by+112,C.LG,7);
+    hln(by+126,C.DBLU);
+    if(blink)TC('TAP TO BEGIN',by+136,C.GR,11);
+    TC('TAP CHOICES TO SELECT',by+154,C.DK,7);
+    TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',by+168,C.DK,6);
+  } else {
+    box(40,30,W-80,H-55,'#000022');
+    dbox(40,30,W-80,H-55,'#000022',C.CY);
+    TC('THE KELLOGG TRAIL',60,C.YL,18);
+    TC('BATTLE CREEK SANITARIUM',88,C.CY,9);
+    TC('MICHIGAN, 1894',100,C.DCYA,7);
+    hln(114,C.DBLU);hln(115,'#001133');
+    TC('Survive Dr. Kellogg\'s bowel health regime.',122,C.WH,7);
+    TC('Endure the yogurt enemas.',135,C.WH,7);
+    TC('Witness the discovery of corn flakes.',148,C.WH,7);
+    TC('(Everything in this game actually happened.)',162,C.LG,7);
+    hln(178,C.DBLU);
+    if(blink)TC('PRESS SPACE OR CLICK TO BEGIN',188,C.GR,9);
+    TC('USE NUMBER KEYS 1-3 OR CLICK TO CHOOSE',204,C.DK,7);
+    TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',222,C.DK,6);
+  }
 }
 
 function drawDeathEnd(G,hov){
   box(0,0,W,H,'#000008');
   drawDeathSprite();
-  box(0,196,W,H-196,'rgba(0,0,8,0.88)');
-  hln(196,C.RD);hln(197,'#440000');
-  TC('YOU HAVE DIED',205,C.RD,16);
-  hln(228,C.DRED);
-  TC('Your sanity was reorganized by Dr. Kellogg\'s regime.',236,C.LG,7);
-  TC('You were last seen writing pamphlets about bowels.',249,C.LG,7);
-  TC('The banker from Chicago seemed very concerned.',262,C.DK,7);
-  TC('Days survived: '+G.day+'      Enemas endured: '+G.enemas,280,C.YL,7);
-  dbox(W/2-90,302,180,28,'#000',hov?C.YL:C.RD);
-  TC('TRY AGAIN',310,hov?C.YL:C.RD,9);
+  const pY=isMobile?GY:196;
+  box(0,pY,W,H-pY,'rgba(0,0,8,0.88)');
+  hln(pY,C.RD);hln(pY+1,'#440000');
+  const tSz=isMobile?14:16;
+  if(deathType==='expelled'){
+    TC('EXPELLED',pY+9,C.RD,tSz);
+    hln(pY+32,C.DRED);
+    TC('"Your presence agitates the collective bowel." -- J.H. Kellogg',pY+40,C.LG,7);
+    TC('You are escorted from the premises with your luggage.',pY+53,C.LG,7);
+    TC('The banker watches from the window. He seems unsurprised.',pY+66,C.DK,7);
+  } else {
+    TC('YOU HAVE DIED',pY+9,C.RD,tSz);
+    hln(pY+32,C.DRED);
+    TC('Your sanity was reorganized by Dr. Kellogg\'s regime.',pY+40,C.LG,7);
+    TC('You were last seen writing pamphlets about bowels.',pY+53,C.LG,7);
+    TC('The banker from Chicago seemed very concerned.',pY+66,C.DK,7);
+  }
+  TC('Days survived: '+G.day+'      Enemas endured: '+G.enemas,pY+84,C.YL,7);
+  const btnY=isMobile?H-70:pY+106;
+  dbox(W/2-90,btnY,180,28,'#000',hov?C.YL:C.RD);
+  TC('TRY AGAIN',btnY+8,hov?C.YL:C.RD,9);
   drawHUD(G);
 }
 
 function drawVictoryEnd(G,hov,scrollX,walkF){
   drawScene('victory',scrollX,walkF);
-  drawPatient(100,GY-20,walkF);
-  drawWill(180,GY-20,walkF);
-  drawNurse(240,GY-20,walkF,'tray');
-  drawKellogg(500,GY-20,0); // frozen, distant, disapproving
-  drawVictorySprite(W-130,120);
-  box(20,GY-2,W-40,H-GY-4,'rgba(0,0,20,0.92)');
+  drawPatient(~~(W*.16),GY-20,walkF);
+  drawWill(~~(W*.30),GY-20,walkF);
+  drawNurse(~~(W*.40),GY-20,walkF,'tray');
+  drawKellogg(~~(W*.78),GY-20,0);
+  drawVictorySprite(W-130,isMobile?80:120);
+  box(isMobile?0:20,GY-2,isMobile?W:W-40,H-GY-4,'rgba(0,0,20,0.92)');
   hln(GY,C.YL);hln(GY+1,'#554400');
-  TC('CORN FLAKES DISCOVERED',GY+10,C.YL,12);
+  TC('CORN FLAKES DISCOVERED',GY+10,C.YL,isMobile?12:12);
   TC('BATTLE CREEK, MICHIGAN  1894',GY+28,C.CY,8);
   hln(GY+40,'#003344');
-  TC('You survived the grape cure, the yogurt enemas,',GY+48,C.WH,7);
-  TC('and C.W. Post\'s suspicious napkin diagrams.',GY+61,C.WH,7);
-  TC('In a basement kitchen at midnight, you were there',GY+74,C.WH,7);
-  TC('when Will Kellogg discovered breakfast cereal.',GY+87,C.WH,7);
-  TC('Final sanity: '+G.sanity+'%   Enemas: '+G.enemas+'   Kellogg approval: '+G.approval+'/5',GY+104,C.YL,7);
-  dbox(W/2-100,GY+122,200,26,'#000',hov?C.YL:C.GR);
-  TC('PLAY AGAIN',GY+128,hov?C.YL:C.GR,9);
+  TC('You survived the grape cure, the yogurt enemas,',GY+48,C.WH,isMobile?8:7);
+  TC('and C.W. Post\'s suspicious napkin diagrams.',GY+62,C.WH,isMobile?8:7);
+  TC('In a basement kitchen at midnight, you were there',GY+76,C.WH,isMobile?8:7);
+  TC('when Will Kellogg discovered breakfast cereal.',GY+90,C.WH,isMobile?8:7);
+  TC('Final sanity: '+G.sanity+'%   Enemas: '+G.enemas+'   Approval: '+G.approval+'/5',GY+108,C.YL,isMobile?8:7);
+  const vBtnY=isMobile?H-70:GY+126;
+  dbox(W/2-100,vBtnY,200,26,'#000',hov?C.YL:C.GR);
+  TC('PLAY AGAIN',vBtnY+7,hov?C.YL:C.GR,9);
   drawHUD(G);
 }
 
@@ -1476,13 +1689,11 @@ function updateHover(){
   hoverChoice=-1;
   if(state==='event'&&currentEvent){
     const ev=currentEvent;
-    let ty=TB_Y+23;
-    ev.lines.forEach(l=>ty+=11);
-    if(ev.fact)ty+=14;
-    ty+=7;
+    const ty=choiceBaseY(ev);
+    const ch_h=isMobile?28:15;
     ev.choices.forEach((ch,i)=>{
-      const y2=ty+i*15;
-      if(mouseY>=y2-1&&mouseY<=y2+13&&mouseX>=4&&mouseX<=W-4)hoverChoice=i;
+      const y2=ty+i*ch_h;
+      if(mouseY>=y2-2&&mouseY<=y2+ch_h-2&&mouseX>=4&&mouseX<=W-4)hoverChoice=i;
     });
   }
 }
@@ -1490,24 +1701,28 @@ function handleClick(){
   if(state==='title'){startGame();return;}
   if(state==='event'&&currentEvent){
     const ev=currentEvent;
-    let ty=TB_Y+23;
-    ev.lines.forEach(l=>ty+=11);
-    if(ev.fact)ty+=14;
-    ty+=7;
+    const ty=choiceBaseY(ev);
+    const ch_h=isMobile?28:15;
     for(let i=0;i<ev.choices.length;i++){
-      const y2=ty+i*15;
-      if(mouseY>=y2-1&&mouseY<=y2+13){pickChoice(i);return;}
+      const y2=ty+i*ch_h;
+      if(mouseY>=y2-2&&mouseY<=y2+ch_h-2){pickChoice(i);return;}
     }
   }
-  if(state==='outcome'&&mouseY>=H-28){continueAfterOutcome();return;}
-  if(state==='death'&&mouseY>=302&&mouseY<=330)restartGame();
-  if(state==='victory'&&mouseY>=GY+122&&mouseY<=GY+150)restartGame();
+  if(state==='outcome'){
+    const cBtnY=isMobile?H-62:H-28;
+    if(mouseY>=cBtnY){continueAfterOutcome();return;}
+  }
+  const dBtnY=isMobile?H-70:302;
+  if(state==='death'&&mouseY>=dBtnY&&mouseY<=dBtnY+28)restartGame();
+  const vBtnY=isMobile?H-70:GY+126;
+  if(state==='victory'&&mouseY>=vBtnY&&mouseY<=vBtnY+26)restartGame();
 }
 
 // ═══════════════════════════════════════════════
 // GAME LOGIC
 // ═══════════════════════════════════════════════
 let state='title';
+let deathType='sanity';
 let G={sanity:75,bowel:3,approval:5,enemas:0,day:1};
 let sceneIdx=0;
 let currentEvent=null;
@@ -1546,16 +1761,17 @@ function pickChoice(i){
   state='outcome';
 }
 function continueAfterOutcome(){
-  if(G.sanity<=0){state='death';return;}
+  if(G.sanity<=0){deathType='sanity';state='death';return;}
+  if(G.approval<=0){deathType='expelled';state='death';return;}
   sceneIdx++;
   if(sceneIdx>=gameEvents.length){state='victory';return;}
   state='travel';travelDist=0;travelGoal=80+Math.random()*40;
   currentEvent=null;
 }
 function restartGame(){
-  G={sanity:100,bowel:3,approval:5,enemas:0,day:1};
+  G={sanity:75,bowel:3,approval:5,enemas:0,day:1};
   sceneIdx=0;scroll=0;travelDist=0;travelGoal=90;
-  currentEvent=null;outcomeData=null;state='title';
+  currentEvent=null;outcomeData=null;deathType='sanity';state='title';
 }
 
 // ═══════════════════════════════════════════════
@@ -1607,12 +1823,14 @@ function loop(ts){
     return;
   }
   if(state==='death'){
-    const hov=mouseY>=302&&mouseY<=330;
+    const dBtnY=isMobile?H-70:302;
+    const hov=mouseY>=dBtnY&&mouseY<=dBtnY+28;
     drawDeathEnd(G,hov);return;
   }
   if(state==='victory'){
     scroll+=1.5*dt;
-    const hov=mouseY>=GY+122&&mouseY<=GY+150;
+    const vBtnY=isMobile?H-70:GY+126;
+    const hov=mouseY>=vBtnY&&mouseY<=vBtnY+26;
     drawVictoryEnd(G,hov,scroll,walkF);return;
   }
 }
