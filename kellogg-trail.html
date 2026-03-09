@@ -913,7 +913,7 @@ function drawGoodSprite(x,y){
     box(x+sx-5,y+sy,10,1,`rgba(255,220,0,${a})`);
   });
   // Text
-  cx.font='8px "Courier New",monospace';cx.fillStyle=C.GR;cx.textBaseline='top';cx.textAlign='center';cx.fillText('GOOD CHOICE!',x+52,y+76);
+  cx.font='10px "Courier New",monospace';cx.fillStyle=C.GR;cx.textBaseline='top';cx.textAlign='center';cx.fillText('GOOD CHOICE!',x+52,y+76);
 }
 
 function drawBadSprite(x,y){
@@ -927,9 +927,9 @@ function drawBadSprite(x,y){
   // Cross
   box(x+48,y+18,8,30,'#888888');box(x+36,y+26,28,8,'#888888');
   // RIP
-  cx.font='7px "Courier New",monospace';cx.fillStyle='#ffffff';cx.textBaseline='top';cx.textAlign='center';
+  cx.font='8px "Courier New",monospace';cx.fillStyle='#ffffff';cx.textBaseline='top';cx.textAlign='center';
   cx.fillText('R.I.P.',x+52,y+50);cx.fillText('YOUR SANITY',x+52,y+59);
-  cx.font='6px "Courier New",monospace';cx.fillText('1894',x+52,y+69);cx.textAlign='left';
+  cx.font='7px "Courier New",monospace';cx.fillText('1894',x+52,y+69);cx.textAlign='left';
   // Dirt mound
   cx.fillStyle='#774422';cx.beginPath();cx.ellipse(x+52,y+82,50,12,0,0,Math.PI*2);cx.fill();
   box(x+2,y+78,100,12,'#774422');
@@ -944,7 +944,7 @@ function drawBadSprite(x,y){
   box(x+68,y+24,28,28,C.DYEL);box(x+66,y+24,32,5,'#885522');
   box(x+94,y+28,10,6,'#774411'); // handle
   T('YOGURT',x+70,y+34,'#ffe8c0',5);
-  cx.font='8px "Courier New",monospace';cx.fillStyle=C.RD;cx.textBaseline='top';cx.textAlign='center';cx.fillText('BAD CHOICE.',x+52,y+97);
+  cx.font='10px "Courier New",monospace';cx.fillStyle=C.RD;cx.textBaseline='top';cx.textAlign='center';cx.fillText('BAD CHOICE.',x+52,y+97);
 }
 
 function drawNeutralSprite(x,y){
@@ -963,7 +963,7 @@ function drawNeutralSprite(x,y){
   // ? marks bobbing
   cx.fillStyle=C.YL;cx.font='bold 20px monospace';cx.textAlign='center';
   cx.fillText('?',cx2-38,y+20+bob);cx.fillText('?',cx2+44,y+20+bob);
-  cx.font='8px "Courier New",monospace';cx.fillStyle=C.LG;cx.textBaseline='top';cx.textAlign='center';cx.fillText('NEUTRAL.',x+52,y+97);
+  cx.font='10px "Courier New",monospace';cx.fillStyle=C.LG;cx.textBaseline='top';cx.textAlign='center';cx.fillText('NEUTRAL.',x+52,y+97);
 }
 
 function drawVictorySprite(x,y){
@@ -1380,38 +1380,36 @@ const EVENTS=[
 // ═══════════════════════════════════════════════
 function drawHUD(G){
   if(isMobile){
-    box(0,0,W,28,'#000022');
-    hln(28,C.CY);hln(29,'#003344');
-    // Row 1: sanity bar + day counter
-    T('SAN:',4,3,C.DK,7);
+    box(0,0,W,30,'#000022');
+    hln(30,C.CY);hln(31,'#003344');
+    T('SAN:',4,3,C.DK,8);
     box(30,5,72,8,'#001100');
     box(30,5,~~(G.sanity*0.72),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
     cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(30,5,72,8);
-    T(G.sanity+'%',108,3,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD,7);
-    TR('DAY '+G.day+' ['+Math.min(sceneIdx+1,gameEvents.length||15)+'/15]',W-4,3,C.WH,7);
-    // Row 2: bowel, enemas, kellogg approval
+    T(G.sanity+'%',108,3,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD,8);
+    TR('DAY '+G.day+' ['+Math.min(sceneIdx+1,gameEvents.length||15)+'/15]',W-4,3,C.WH,8);
     const bn=['CRIT','POOR','OKAY','GOOD','OPT!'];
-    T('BWL:',4,15,C.DK,7);
-    T(bn[Math.max(0,Math.min(4,G.bowel))],32,15,C.YL,7);
-    T('ENA:',108,15,C.DK,7);
-    T(String(G.enemas),136,15,C.CY,7);
-    T('KLG:',172,15,C.DK,7);
-    T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),200,15,C.YL,7);
+    T('BWL:',4,17,C.DK,8);
+    T(bn[Math.max(0,Math.min(4,G.bowel))],32,17,C.YL,8);
+    T('ENA:',108,17,C.DK,8);
+    T(String(G.enemas),136,17,C.CY,8);
+    T('KLG:',172,17,C.DK,8);
+    T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),200,17,C.YL,8);
   } else {
-    box(0,0,W,22,'#000022');
-    hln(22,C.CY);hln(23,'#003344');
-    T('SANITY:',6,5,C.DK,7);
-    box(58,7,84,8,'#001100');box(58,7,~~(G.sanity*0.84),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
-    cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(58,7,84,8);
-    T(G.sanity+'%',148,5,C.GR,7);
-    T('BOWEL:',195,5,C.DK,7);
+    box(0,0,W,24,'#000022');
+    hln(24,C.CY);hln(25,'#003344');
+    T('SANITY:',6,6,C.DK,8);
+    box(58,8,84,8,'#001100');box(58,8,~~(G.sanity*0.84),8,G.sanity>60?C.GR:G.sanity>30?C.YL:C.RD);
+    cx.strokeStyle='#003300';cx.lineWidth=1;cx.strokeRect(58,8,84,8);
+    T(G.sanity+'%',148,6,C.GR,8);
+    T('BOWEL:',195,6,C.DK,8);
     const bn=['CRITICAL','POOR','OKAY','GOOD','OPTIMAL'];
-    T(bn[Math.max(0,Math.min(4,G.bowel))],245,5,C.YL,7);
-    T('ENEMAS:',360,5,C.DK,7);
-    T(String(G.enemas),415,5,C.CY,7);
-    T('KELLOGG:',445,5,C.DK,7);
-    T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),502,5,C.YL,7);
-    TR('DAY '+G.day+'  ['+Math.min(sceneIdx+1,gameEvents.length||15)+'/15]',W-6,5,C.WH,7);
+    T(bn[Math.max(0,Math.min(4,G.bowel))],245,6,C.YL,8);
+    T('ENEMAS:',360,6,C.DK,8);
+    T(String(G.enemas),415,6,C.CY,8);
+    T('KELLOGG:',445,6,C.DK,8);
+    T('*'.repeat(G.approval)+'.'.repeat(Math.max(0,5-G.approval)),502,6,C.YL,8);
+    TR('DAY '+G.day+'  ['+Math.min(sceneIdx+1,gameEvents.length||15)+'/15]',W-6,6,C.WH,8);
   }
 }
 
@@ -1420,7 +1418,7 @@ function drawHUD(G){
 // ═══════════════════════════════════════════════
 function drawProgressBar(dist,goal){
   const by=H-36,bh=14,bx=8,bw=W-16;
-  T('TRAVELING TO NEXT STOP...',bx,by-14,C.DK,7);
+  T('TRAVELING TO NEXT STOP...',bx,by-15,C.DK,8);
   box(bx,by,bw,bh,'#001100');
   box(bx,by,~~(dist/goal*bw),bh,'#002200');
   const prog=~~(dist/goal*bw);
@@ -1438,17 +1436,17 @@ function drawProgressBar(dist,goal){
 // Returns the Y position of the first choice for the current layout
 function choiceBaseY(ev){
   if(isMobile){
-    let ty=TB_Y+34;
-    ev.lines.forEach(()=>ty+=14);
+    let ty=TB_Y+36;
+    ev.lines.forEach(()=>ty+=17);
     if(ev.fact){
-      ty+=wrap(ev.fact,W-16,7).length*12+8;
+      ty+=wrap(ev.fact,W-16,8).length*14+8;
     }
     ty+=10;
     return ty;
   } else {
-    let ty=TB_Y+23;
-    ev.lines.forEach(()=>ty+=11);
-    if(ev.fact)ty+=14;
+    let ty=TB_Y+25;
+    ev.lines.forEach(()=>ty+=12);
+    if(ev.fact)ty+=16;
     ty+=7;
     return ty;
   }
@@ -1460,49 +1458,49 @@ function drawEventBox(ev,hoverChoice){
 
   if(isMobile){
     // Portrait: larger fonts, more line spacing, full-width choices
-    T(ev.header,8,TB_Y+4,C.YL,10);
-    T(ev.sub,8,TB_Y+18,C.CY,7);
-    hln(TB_Y+29,'#003344');hln(TB_Y+30,C.DCYA);
-    let ty=TB_Y+34;
+    T(ev.header,8,TB_Y+4,C.YL,12);
+    T(ev.sub,8,TB_Y+20,C.CY,8);
+    hln(TB_Y+31,'#003344');hln(TB_Y+32,C.DCYA);
+    let ty=TB_Y+36;
     ev.lines.forEach(line=>{
       const col=line.startsWith('"')||line.startsWith('WILL')||line.startsWith('JOHN')?C.CY:
                 line===''?C.BK:C.WH;
-      T(line,8,ty,col,9);ty+=14;
+      T(line,8,ty,col,11);ty+=17;
     });
     if(ev.fact){
       hln(ty+1,'#553300');
-      const fl=wrap(ev.fact,W-16,7);
-      fl.forEach(l=>{T(l,8,ty+4,'#ddbb44',7);ty+=12;});
+      const fl=wrap(ev.fact,W-16,8);
+      fl.forEach(l=>{T(l,8,ty+4,'#ddbb44',8);ty+=14;});
       ty+=8;
     }
     hln(ty+2,'#003344');ty+=10;
     ev.choices.forEach((ch,i)=>{
-      const y2=ty+i*28;
-      if(hoverChoice===i)box(4,y2-3,W-8,26,'#002200');
-      T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,9);
-      T(ch.t,24,y2,hoverChoice===i?C.GR:C.WH,9);
+      const y2=ty+i*33;
+      if(hoverChoice===i)box(4,y2-3,W-8,30,'#002200');
+      T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,11);
+      T(ch.t,24,y2,hoverChoice===i?C.GR:C.WH,11);
     });
   } else {
-    // Landscape: original compact layout
-    T(ev.header,8,TB_Y+4,C.YL,8);
-    TR(ev.sub,W-8,TB_Y+4,C.CY,7);
-    hln(TB_Y+17,'#003344');hln(TB_Y+18,C.DCYA);
-    let ty=TB_Y+23;
+    // Landscape: bumped fonts ~20%
+    T(ev.header,8,TB_Y+4,C.YL,10);
+    TR(ev.sub,W-8,TB_Y+4,C.CY,8);
+    hln(TB_Y+19,'#003344');hln(TB_Y+20,C.DCYA);
+    let ty=TB_Y+25;
     ev.lines.forEach(line=>{
       const col=line.startsWith('"')||line.startsWith('WILL')||line.startsWith('JOHN')?C.CY:
                 line===''?C.BK:C.WH;
-      T(line,8,ty,col,7);ty+=11;
+      T(line,8,ty,col,8);ty+=12;
     });
     if(ev.fact){
       hln(ty+1,'#553300');
-      T(ev.fact,8,ty+4,'#ddbb44',7);ty+=15;
+      T(ev.fact,8,ty+4,'#ddbb44',8);ty+=16;
     }
     hln(ty+2,'#003344');ty+=7;
     ev.choices.forEach((ch,i)=>{
-      const y2=ty+i*15;
-      if(hoverChoice===i)box(4,y2-1,W-8,13,'#002200');
-      T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,7);
-      T(ch.t,20,y2,hoverChoice===i?C.GR:C.WH,7);
+      const y2=ty+i*17;
+      if(hoverChoice===i)box(4,y2-1,W-8,15,'#002200');
+      T(ch.k+'.',8,y2,hoverChoice===i?C.GR:C.DK,8);
+      T(ch.t,20,y2,hoverChoice===i?C.GR:C.WH,8);
     });
   }
 }
@@ -1515,26 +1513,26 @@ function drawOutcomeBox(od,hoverCont,mouseY2){
     // Portrait: banner → centered sprite → wrapped text → tap button
     box(0,GY,W,H-GY,'#000022');
     hln(GY,C.CY);hln(GY+1,'#003344');
-    TC(banTxt,TB_Y+4,banCol,10);
-    hln(TB_Y+18,'#003344');
+    TC(banTxt,TB_Y+4,banCol,12);
+    hln(TB_Y+20,'#003344');
     // Sprite centered
     const sx=~~((W-104)/2);
-    if(od.type==='good')drawGoodSprite(sx,TB_Y+22);
-    else if(od.type==='bad')drawBadSprite(sx,TB_Y+22);
-    else drawNeutralSprite(sx,TB_Y+22);
+    if(od.type==='good')drawGoodSprite(sx,TB_Y+24);
+    else if(od.type==='bad')drawBadSprite(sx,TB_Y+24);
+    else drawNeutralSprite(sx,TB_Y+24);
     // Result text below sprite
-    const rlines=wrap(od.msg,W-16,8);
-    let ry=TB_Y+134;
-    rlines.forEach(l=>{T(l,8,ry,C.WH,8);ry+=13;});
+    const rlines=wrap(od.msg,W-16,10);
+    let ry=TB_Y+136;
+    rlines.forEach(l=>{T(l,8,ry,C.WH,10);ry+=15;});
     ry+=6;
     od.statChanges.forEach(({label,delta})=>{
-      T((delta>0?'+':'')+delta+' '+label,8,ry,delta>0?C.GR:C.RD,8);ry+=13;
+      T((delta>0?'+':'')+delta+' '+label,8,ry,delta>0?C.GR:C.RD,10);ry+=15;
     });
     // Continue button
     const cBtnY=H-62;
     const contHov=mouseY2>=cBtnY&&mouseY2<=cBtnY+32;
     dbox(W/2-100,cBtnY,200,32,'#000022',contHov?C.YL:C.GR);
-    TC('TAP TO CONTINUE >>',cBtnY+10,contHov?C.YL:C.GR,9);
+    TC('TAP TO CONTINUE >>',cBtnY+10,contHov?C.YL:C.GR,11);
   } else {
     // Landscape: sprite left, text right
     box(0,GY,220,H-GY,'#000011');
@@ -1545,18 +1543,18 @@ function drawOutcomeBox(od,hoverCont,mouseY2){
     const tx=228,ty=GY+4,tw=W-tx-8;
     box(tx-2,GY,W-tx+2,H-GY,'#000022');
     hln(GY,C.CY);hln(GY+1,'#003344');
-    T(banTxt,tx,ty+4,banCol,8);
-    hln(ty+16,'#003344');
-    const rlines=wrap(od.msg,tw-4,7);
-    let ry=ty+20;
-    rlines.forEach(l=>{T(l,tx,ry,C.WH,7);ry+=12;});
+    T(banTxt,tx,ty+4,banCol,10);
+    hln(ty+20,'#003344');
+    const rlines=wrap(od.msg,tw-4,8);
+    let ry=ty+24;
+    rlines.forEach(l=>{T(l,tx,ry,C.WH,8);ry+=13;});
     ry+=6;
     od.statChanges.forEach(({label,delta})=>{
-      T((delta>0?'+':'')+delta+' '+label,tx,ry,delta>0?C.GR:C.RD,7);ry+=12;
+      T((delta>0?'+':'')+delta+' '+label,tx,ry,delta>0?C.GR:C.RD,8);ry+=13;
     });
     hln(H-28,'#003344');
     const contHov=mouseY2>=H-26&&mouseY2<=H-4;
-    T('SPACE OR CLICK TO CONTINUE  >>',tx,H-24,contHov?C.YL:C.GR,7);
+    T('SPACE OR CLICK TO CONTINUE  >>',tx,H-24,contHov?C.YL:C.GR,8);
   }
 }
 
@@ -1574,33 +1572,33 @@ function drawTitle(scrollX,walkF,blink){
     const by=GY+2;
     box(0,by,W,H-by,'#000022');
     dbox(0,by,W,H-by,'#000022',C.CY);
-    TC('THE KELLOGG TRAIL',by+18,C.YL,14);
-    TC('BATTLE CREEK SANITARIUM',by+38,C.CY,9);
-    TC('MICHIGAN, 1894',by+52,C.DCYA,7);
-    hln(by+65,C.DBLU);hln(by+66,'#001133');
-    TC('Survive Dr. Kellogg\'s health regime.',by+73,C.WH,7);
-    TC('Endure the yogurt enemas.',by+86,C.WH,7);
-    TC('Witness the discovery of corn flakes.',by+99,C.WH,7);
-    TC('(Everything in this game actually happened.)',by+112,C.LG,7);
-    hln(by+126,C.DBLU);
-    if(blink)TC('TAP TO BEGIN',by+136,C.GR,11);
-    TC('TAP CHOICES TO SELECT',by+154,C.DK,7);
-    TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',by+168,C.DK,6);
+    TC('THE KELLOGG TRAIL',by+16,C.YL,17);
+    TC('BATTLE CREEK SANITARIUM',by+37,C.CY,11);
+    TC('MICHIGAN, 1894',by+52,C.DCYA,8);
+    hln(by+66,C.DBLU);hln(by+67,'#001133');
+    TC('Survive Dr. Kellogg\'s health regime.',by+74,C.WH,8);
+    TC('Endure the yogurt enemas.',by+87,C.WH,8);
+    TC('Witness the discovery of corn flakes.',by+100,C.WH,8);
+    TC('(Everything in this game actually happened.)',by+113,C.LG,8);
+    hln(by+128,C.DBLU);
+    if(blink)TC('TAP TO BEGIN',by+136,C.GR,13);
+    TC('TAP CHOICES TO SELECT',by+155,C.DK,8);
+    TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',by+168,C.DK,7);
   } else {
     box(40,30,W-80,H-55,'#000022');
     dbox(40,30,W-80,H-55,'#000022',C.CY);
-    TC('THE KELLOGG TRAIL',60,C.YL,18);
-    TC('BATTLE CREEK SANITARIUM',88,C.CY,9);
-    TC('MICHIGAN, 1894',100,C.DCYA,7);
-    hln(114,C.DBLU);hln(115,'#001133');
-    TC('Survive Dr. Kellogg\'s bowel health regime.',122,C.WH,7);
-    TC('Endure the yogurt enemas.',135,C.WH,7);
-    TC('Witness the discovery of corn flakes.',148,C.WH,7);
-    TC('(Everything in this game actually happened.)',162,C.LG,7);
+    TC('THE KELLOGG TRAIL',58,C.YL,22);
+    TC('BATTLE CREEK SANITARIUM',88,C.CY,11);
+    TC('MICHIGAN, 1894',102,C.DCYA,8);
+    hln(116,C.DBLU);hln(117,'#001133');
+    TC('Survive Dr. Kellogg\'s bowel health regime.',124,C.WH,8);
+    TC('Endure the yogurt enemas.',137,C.WH,8);
+    TC('Witness the discovery of corn flakes.',150,C.WH,8);
+    TC('(Everything in this game actually happened.)',163,C.LG,8);
     hln(178,C.DBLU);
-    if(blink)TC('PRESS SPACE OR CLICK TO BEGIN',188,C.GR,9);
-    TC('USE NUMBER KEYS 1-3 OR CLICK TO CHOOSE',204,C.DK,7);
-    TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',222,C.DK,6);
+    if(blink)TC('PRESS SPACE OR CLICK TO BEGIN',188,C.GR,11);
+    TC('USE NUMBER KEYS 1-3 OR CLICK TO CHOOSE',205,C.DK,8);
+    TC('"32 CHEWS PER BITE. EVERY BITE." -- DR. KELLOGG',220,C.DK,7);
   }
 }
 
@@ -1610,24 +1608,24 @@ function drawDeathEnd(G,hov){
   const pY=isMobile?GY:196;
   box(0,pY,W,H-pY,'rgba(0,0,8,0.88)');
   hln(pY,C.RD);hln(pY+1,'#440000');
-  const tSz=isMobile?14:16;
+  const tSz=isMobile?17:19;
   if(deathType==='expelled'){
     TC('EXPELLED',pY+9,C.RD,tSz);
-    hln(pY+32,C.DRED);
-    TC('"Your presence agitates the collective bowel." -- J.H. Kellogg',pY+40,C.LG,7);
-    TC('You are escorted from the premises with your luggage.',pY+53,C.LG,7);
-    TC('The banker watches from the window. He seems unsurprised.',pY+66,C.DK,7);
+    hln(pY+34,C.DRED);
+    TC('"Your presence agitates the collective bowel." -- J.H. Kellogg',pY+42,C.LG,8);
+    TC('You are escorted from the premises with your luggage.',pY+55,C.LG,8);
+    TC('The banker watches from the window. He seems unsurprised.',pY+68,C.DK,8);
   } else {
     TC('YOU HAVE DIED',pY+9,C.RD,tSz);
-    hln(pY+32,C.DRED);
-    TC('Your sanity was reorganized by Dr. Kellogg\'s regime.',pY+40,C.LG,7);
-    TC('You were last seen writing pamphlets about bowels.',pY+53,C.LG,7);
-    TC('The banker from Chicago seemed very concerned.',pY+66,C.DK,7);
+    hln(pY+34,C.DRED);
+    TC('Your sanity was reorganized by Dr. Kellogg\'s regime.',pY+42,C.LG,8);
+    TC('You were last seen writing pamphlets about bowels.',pY+55,C.LG,8);
+    TC('The banker from Chicago seemed very concerned.',pY+68,C.DK,8);
   }
-  TC('Days survived: '+G.day+'      Enemas endured: '+G.enemas,pY+84,C.YL,7);
-  const btnY=isMobile?H-70:pY+106;
+  TC('Days survived: '+G.day+'      Enemas endured: '+G.enemas,pY+86,C.YL,8);
+  const btnY=isMobile?H-70:pY+108;
   dbox(W/2-90,btnY,180,28,'#000',hov?C.YL:C.RD);
-  TC('TRY AGAIN',btnY+8,hov?C.YL:C.RD,9);
+  TC('TRY AGAIN',btnY+8,hov?C.YL:C.RD,11);
   drawHUD(G);
 }
 
@@ -1640,17 +1638,17 @@ function drawVictoryEnd(G,hov,scrollX,walkF){
   drawVictorySprite(W-130,isMobile?80:120);
   box(isMobile?0:20,GY-2,isMobile?W:W-40,H-GY-4,'rgba(0,0,20,0.92)');
   hln(GY,C.YL);hln(GY+1,'#554400');
-  TC('CORN FLAKES DISCOVERED',GY+10,C.YL,isMobile?12:12);
-  TC('BATTLE CREEK, MICHIGAN  1894',GY+28,C.CY,8);
-  hln(GY+40,'#003344');
-  TC('You survived the grape cure, the yogurt enemas,',GY+48,C.WH,isMobile?8:7);
-  TC('and C.W. Post\'s suspicious napkin diagrams.',GY+62,C.WH,isMobile?8:7);
-  TC('In a basement kitchen at midnight, you were there',GY+76,C.WH,isMobile?8:7);
-  TC('when Will Kellogg discovered breakfast cereal.',GY+90,C.WH,isMobile?8:7);
-  TC('Final sanity: '+G.sanity+'%   Enemas: '+G.enemas+'   Approval: '+G.approval+'/5',GY+108,C.YL,isMobile?8:7);
-  const vBtnY=isMobile?H-70:GY+126;
+  TC('CORN FLAKES DISCOVERED',GY+10,C.YL,14);
+  TC('BATTLE CREEK, MICHIGAN  1894',GY+30,C.CY,10);
+  hln(GY+44,'#003344');
+  TC('You survived the grape cure, the yogurt enemas,',GY+52,C.WH,isMobile?10:8);
+  TC('and C.W. Post\'s suspicious napkin diagrams.',GY+66,C.WH,isMobile?10:8);
+  TC('In a basement kitchen at midnight, you were there',GY+80,C.WH,isMobile?10:8);
+  TC('when Will Kellogg discovered breakfast cereal.',GY+94,C.WH,isMobile?10:8);
+  TC('Final sanity: '+G.sanity+'%   Enemas: '+G.enemas+'   Approval: '+G.approval+'/5',GY+112,C.YL,isMobile?10:8);
+  const vBtnY=isMobile?H-70:GY+130;
   dbox(W/2-100,vBtnY,200,26,'#000',hov?C.YL:C.GR);
-  TC('PLAY AGAIN',vBtnY+7,hov?C.YL:C.GR,9);
+  TC('PLAY AGAIN',vBtnY+7,hov?C.YL:C.GR,11);
   drawHUD(G);
 }
 
@@ -1692,7 +1690,7 @@ function updateHover(){
   if(state==='event'&&currentEvent){
     const ev=currentEvent;
     const ty=choiceBaseY(ev);
-    const ch_h=isMobile?28:15;
+    const ch_h=isMobile?33:17;
     ev.choices.forEach((ch,i)=>{
       const y2=ty+i*ch_h;
       if(mouseY>=y2-2&&mouseY<=y2+ch_h-2&&mouseX>=4&&mouseX<=W-4)hoverChoice=i;
@@ -1704,7 +1702,7 @@ function handleClick(){
   if(state==='event'&&currentEvent){
     const ev=currentEvent;
     const ty=choiceBaseY(ev);
-    const ch_h=isMobile?28:15;
+    const ch_h=isMobile?33:17;
     for(let i=0;i<ev.choices.length;i++){
       const y2=ty+i*ch_h;
       if(mouseY>=y2-2&&mouseY<=y2+ch_h-2){pickChoice(i);return;}
@@ -1714,9 +1712,9 @@ function handleClick(){
     const cBtnY=isMobile?H-62:H-28;
     if(mouseY>=cBtnY){continueAfterOutcome();return;}
   }
-  const dBtnY=isMobile?H-70:302;
+  const dBtnY=isMobile?H-70:304;
   if(state==='death'&&mouseY>=dBtnY&&mouseY<=dBtnY+28)restartGame();
-  const vBtnY=isMobile?H-70:GY+126;
+  const vBtnY=isMobile?H-70:GY+130;
   if(state==='victory'&&mouseY>=vBtnY&&mouseY<=vBtnY+26)restartGame();
 }
 
@@ -1825,13 +1823,13 @@ function loop(ts){
     return;
   }
   if(state==='death'){
-    const dBtnY=isMobile?H-70:302;
+    const dBtnY=isMobile?H-70:304;
     const hov=mouseY>=dBtnY&&mouseY<=dBtnY+28;
     drawDeathEnd(G,hov);return;
   }
   if(state==='victory'){
     scroll+=1.5*dt;
-    const vBtnY=isMobile?H-70:GY+126;
+    const vBtnY=isMobile?H-70:GY+130;
     const hov=mouseY>=vBtnY&&mouseY<=vBtnY+26;
     drawVictoryEnd(G,hov,scroll,walkF);return;
   }
