@@ -1408,11 +1408,15 @@ const SQ_INTRO={
     lines:[
       'Ford stops you outside the lecture hall.',
       '"You look like a man who\'s played ball."',
-      '"One game. One at-bat. Don\'t embarrass',
-      'yourself." He hands you a very clean ball.',
-      '',
-      'The sanitarium staff team assembles. Ford',
-      'stands near the fence with his arms crossed.',
+      '"One pitch. One at-bat. Don\'t embarrass',
+      'yourself." He hands you a clean ball.',
+    ],
+    howto:[
+      '1. Pick a PITCH TYPE on the left.',
+      '2. Click a ZONE on the grid to aim.',
+      '3. Hit PITCH! If they miss, you bat.',
+      '4. Click/tap to SWING when the ball',
+      '   enters the strike zone.',
     ],
     cta:'PLAY BALL',
     col:C.YL,
@@ -1421,11 +1425,17 @@ const SQ_INTRO={
     title:'THE BANKER\'S CHALLENGE',
     who:'The Banker',
     lines:[
-      'The banker from the electric cabinet waves.',
-      '"The electric parlor game. Five rounds.',
-      'Increasing voltage. Last man holding wins."',
-      'He hands you a copper electrode.',
-      'It smells of burnt wool.',
+      'The banker waves you over. "Electric',
+      'parlor game. Hold the electrode. Survive',
+      '20 seconds. Don\'t let go." He hands you',
+      'a copper rod. It smells of burnt wool.',
+    ],
+    howto:[
+      '1. Click GRAB to hold the electrode.',
+      '2. SHOCK rises while holding.',
+      '3. RELEASE before shock hits 100%.',
+      '4. GRIP drops when released.',
+      '5. Grab again before grip hits 0%.',
     ],
     cta:'GRAB THE ELECTRODE',
     col:C.CY,
@@ -1435,10 +1445,15 @@ const SQ_INTRO={
     who:'C.W. Post',
     lines:[
       'Post leans over with a very clean deck.',
-      '"A friendly wager. Vingt-et-un.',
-      'Highest total under 21 wins."',
-      '"Unless you\'re afraid of a little',
-      'excitement." His eyes say he isn\'t.',
+      '"Vingt-et-un. Highest total under 21',
+      'wins." His eyes say he has done this',
+      'before. Many times.',
+    ],
+    howto:[
+      '1. You and Post each get 2 cards.',
+      '2. HIT to draw another card.',
+      '3. STAND to stop and let Post play.',
+      '4. Closest to 21 without busting wins.',
     ],
     cta:'DEAL THE CARDS',
     col:C.GR,
@@ -1449,9 +1464,14 @@ const SQ_INTRO={
     lines:[
       'Will grabs your arm in the dark kitchen.',
       '"I hid the corn notebook. John can\'t',
-      'find it. It\'s in the kitchen somewhere."',
-      '"He\'s coming. Grab the lamp and',
-      'FIND IT." He vanishes into the dark.',
+      'find it." He shoves a lamp in your hands',
+      'and vanishes into the dark.',
+    ],
+    howto:[
+      '1. Move mouse/finger to aim the lamp.',
+      '2. Search the kitchen for the notebook.',
+      '3. Click/tap it when the beam finds it.',
+      '4. You have 20 seconds.',
     ],
     cta:'TAKE THE LAMP',
     col:C.YL,
@@ -1462,26 +1482,36 @@ function skipSQ(){pendingSQ=null;sqType=null;sqElectricHolding=false;continueAft
 function drawSQIntro(){
   const d=SQ_INTRO[sqType];
   box(0,0,W,H,'#000022');
-  hln(0,C.CY);
   // Header
   box(0,0,W,isMobile?42:32,'#001133');
   TC('** SIDE QUEST **',isMobile?4:4,C.CY,isMobile?8:7);
   TC(d.title,isMobile?18:14,d.col,isMobile?10:9);
-  // Body
+  hln(isMobile?42:32,C.CY);
+  // Narrative
   let ty=isMobile?52:42;
   for(const ln of d.lines){
     T(ln,10,ty,C.WH,isMobile?9:8);
     ty+=isMobile?16:13;
   }
+  // How to play
+  ty+=isMobile?8:6;
+  hln(ty,'#223322');
+  ty+=isMobile?8:6;
+  T('HOW TO PLAY:',10,ty,C.YL,isMobile?9:8);
+  ty+=isMobile?16:14;
+  for(const ln of d.howto){
+    T(ln,10,ty,C.CY,isMobile?8:7);
+    ty+=isMobile?14:12;
+  }
   // CTA button
   const btnW=isMobile?200:180,btnH=isMobile?38:28;
   const btnX=(W-btnW)/2,btnY=H-btnH*2-28;
-  const hov=mouseY>=btnY&&mouseY<=btnY+btnH;
+  const hov=mouseY>=btnY&&mouseY<=btnY+btnH&&mouseX>=btnX&&mouseX<=btnX+btnW;
   dbox(btnX,btnY,btnW,btnH,'#002200',hov?C.YL:C.GR);
   TC('[ '+d.cta+' ]',btnY+(btnH-10)/2,hov?C.YL:C.GR,isMobile?10:9);
   // Skip button
   const skY=btnY+btnH+8;
-  const hovSk=mouseY>=skY&&mouseY<=skY+btnH-8;
+  const hovSk=mouseY>=skY&&mouseY<=skY+btnH-8&&mouseX>=btnX+30&&mouseX<=btnX+btnW-30;
   dbox(btnX+30,skY,btnW-60,btnH-8,'#110011',hovSk?C.RD:C.DK);
   TC('[ no thanks ]',skY+(btnH-18)/2,hovSk?C.RD:C.DK,isMobile?8:7);
 }
